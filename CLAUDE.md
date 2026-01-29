@@ -1,6 +1,6 @@
-# ＜ここにプロジェクト名を書く＞
+# gashapon
 
-＜ここにプロジェクト概要を書く＞
+
 
 ## YOU MUST: 
 - 回答は日本語で行うこと
@@ -33,13 +33,13 @@
 
 ### GitHub
 
-- **リポジトリURL**: ＜ここに Github の URL を書く＞
+- **リポジトリURL**: https://github.com/masaru0ta/gashapon
 
 
 ### GAS (Google App Script)
 
-- **プロジェクト名**: ＜ここにプロジェクト名を書く＞
-- **スクリプトURL**: ＜ここにGASプロジェクトのURLを書く＞
+- **プロジェクト名**: gashapon
+- **スクリプトURL**: https://script.google.com/d/1QZZCqI_kOaD-oeOKxwgGvS9Xpjngaw99RG8imn4hFzsUMUd_WbnQj9W3/edit
 - **デプロイURL**:
 
 GASコードは `src/gas/script.js` で管理。
