@@ -37,8 +37,16 @@
   #mapCanvas {
     display: block;
     image-rendering: pixelated;
-    max-width: 100%;
-    height: auto;
+    cursor: grab;
+  }
+  #mapCanvas:active {
+    cursor: grabbing;
+  }
+  .scroll-hint {
+    font-size: 10px;
+    color: #666;
+    text-align: center;
+    margin-top: 4px;
   }
   .side-panel {
     width: 220px;
@@ -128,7 +136,8 @@
 <div class="main-container">
   <!-- マップ描画エリア -->
   <div class="map-area">
-    <canvas id="mapCanvas" width="512" height="512"></canvas>
+    <canvas id="mapCanvas"></canvas>
+    <div class="scroll-hint" id="scrollHint">ドラッグ / 矢印キー / スワイプでスクロール</div>
   </div>
 
   <!-- サイドパネル -->
@@ -194,32 +203,55 @@ const TERRAINS = [
 ];
 
 const TILE_SIZE = 16;
-const SCALE = 2; // 表示倍率
+const SCALE = 2;
 const DRAW_SIZE = TILE_SIZE * SCALE;
 
-// --- サンプルマップデータ (16x16) ---
-// 地形IDの2次元配列
+// --- ビューポート設定 ---
+const VIEWPORT_COLS = 16; // 表示領域のタイル数
+const VIEWPORT_ROWS = 16;
+
+// --- サンプルマップデータ (25x25) ---
 const SAMPLE_MAP = [
-  [ 1, 1, 1, 1, 4, 4, 1, 1, 1, 1, 1, 1, 9, 9, 1, 1],
-  [ 1, 1, 1, 4, 4, 1, 1,16, 1, 1, 1, 1, 1, 9, 1, 1],
-  [ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,11, 1, 1, 1, 1, 1],
-  [ 1, 1,13, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-  [ 1, 1, 1, 1, 2, 2, 3, 3, 2, 2, 1, 1, 1, 1, 1, 1],
-  [ 1, 1, 1, 2, 2, 3, 3, 5, 5, 2, 2, 1, 1, 1, 1, 1],
-  [ 1, 1, 1, 2, 3,15, 2, 5, 2,15, 3, 2, 1, 1, 1, 1],
-  [ 1, 1, 1, 2, 3, 2, 6, 6, 6, 2, 3, 2, 1, 1, 1, 1],
-  [ 1, 1, 1, 2, 3, 2, 6, 8, 6, 2, 3, 2, 1, 1,18, 1],
-  [ 1, 1, 1, 2, 3,17, 2, 6, 2,17, 3, 2, 1, 1, 1, 1],
-  [ 1, 1, 1, 2, 2, 3, 3, 7, 3, 3, 2, 2, 1, 1, 1, 1],
-  [ 1, 1, 1, 1, 2, 2, 3, 3, 3, 2, 2, 1, 1, 1, 1, 1],
-  [ 1, 1, 1, 1, 1, 1, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1],
-  [ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,14, 1, 1],
-  [ 1,10,10, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-  [ 1,10,12, 1, 1, 1, 1, 1, 1, 1, 1, 4, 4, 1, 1, 1],
+  [ 1, 1, 1, 1, 4, 4, 1, 1, 1, 1, 1, 1, 9, 9, 1, 1, 1, 1, 1, 1, 1, 4, 4, 1, 1],
+  [ 1, 1, 1, 4, 4, 1, 1,16, 1, 1, 1, 1, 1, 9, 1, 1, 1, 1, 1, 1, 1, 1, 4, 1, 1],
+  [ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,11, 1, 1, 1, 1, 1, 1, 1, 9, 9, 1, 1, 1, 1, 1],
+  [ 1, 1,13, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 9, 1, 1, 1, 1, 1],
+  [ 1, 1, 1, 1, 2, 2, 3, 3, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+  [ 1, 1, 1, 2, 2, 3, 3, 5, 5, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+  [ 1, 1, 1, 2, 3,15, 2, 5, 2,15, 3, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+  [ 1, 1, 1, 2, 3, 2, 6, 6, 6, 2, 3, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+  [ 1, 1, 1, 2, 3, 2, 6, 8, 6, 2, 3, 2, 1, 1,18, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+  [ 1, 1, 1, 2, 3,17, 2, 6, 2,17, 3, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+  [ 1, 1, 1, 2, 2, 3, 3, 7, 3, 3, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+  [ 1, 1, 1, 1, 2, 2, 3, 3, 3, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+  [ 1, 1, 1, 1, 1, 1, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+  [ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,14, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+  [ 1,10,10, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,10,10, 1],
+  [ 1,10,12, 1, 1, 1, 1, 1, 1, 1, 1, 4, 4, 1, 1, 1, 1, 1, 1, 1, 1, 1,10,12, 1],
+  [ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 3, 3, 2, 1, 1, 1, 1, 1],
+  [ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 3, 5, 3, 2, 2, 1, 1, 1, 1],
+  [ 1, 1, 1, 1, 1, 1, 9, 9, 1, 1, 1, 1, 1, 1, 2, 3,15, 5,15, 3, 2, 1, 1, 1, 1],
+  [ 1, 1, 1, 1, 1, 1, 9, 1, 1, 1, 1, 1, 1, 1, 2, 3, 6, 6, 6, 3, 2, 1, 1, 1, 1],
+  [ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 3,17, 8,17, 3, 2, 1, 1, 1, 1],
+  [ 1, 1, 1, 1, 1,16, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 3, 3, 3, 2, 1, 1, 1, 1, 1],
+  [ 1, 1, 1, 1, 1, 1, 1, 1, 1,13, 1, 1, 1, 1, 1, 1, 2, 2, 2, 1, 1, 1, 1, 1, 1],
+  [ 1, 1, 4, 4, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 4, 4, 1, 1],
+  [ 1, 1, 1, 4, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 4, 4, 1, 1, 1],
 ];
 
 const MAP_COLS = SAMPLE_MAP[0].length;
 const MAP_ROWS = SAMPLE_MAP.length;
+
+// --- スクロール状態 ---
+let scrollX = 0;
+let scrollY = 0;
+const MAX_SCROLL_X = MAP_COLS - VIEWPORT_COLS;
+const MAX_SCROLL_Y = MAP_ROWS - VIEWPORT_ROWS;
+
+function clampScroll() {
+  scrollX = Math.max(0, Math.min(MAX_SCROLL_X, scrollX));
+  scrollY = Math.max(0, Math.min(MAX_SCROLL_Y, scrollY));
+}
 
 // --- 画像の読み込み ---
 const tileImages = {};
@@ -234,7 +266,6 @@ function loadTileImages(callback) {
       if (loadedCount === TERRAINS.length) callback();
     };
     img.onerror = () => {
-      // 画像が読み込めない場合はフォールバック用にnullを設定
       tileImages[t.id] = null;
       loadedCount++;
       if (loadedCount === TERRAINS.length) callback();
@@ -249,24 +280,29 @@ const canvas = document.getElementById('mapCanvas');
 const ctx = canvas.getContext('2d');
 
 function resizeCanvas() {
-  canvas.width = MAP_COLS * DRAW_SIZE;
-  canvas.height = MAP_ROWS * DRAW_SIZE;
+  canvas.width = VIEWPORT_COLS * DRAW_SIZE;
+  canvas.height = VIEWPORT_ROWS * DRAW_SIZE;
 }
 
 function drawMap() {
   ctx.imageSmoothingEnabled = false;
-  for (let row = 0; row < MAP_ROWS; row++) {
-    for (let col = 0; col < MAP_COLS; col++) {
-      const terrainId = SAMPLE_MAP[row][col];
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  for (let vy = 0; vy < VIEWPORT_ROWS; vy++) {
+    for (let vx = 0; vx < VIEWPORT_COLS; vx++) {
+      const mapCol = vx + scrollX;
+      const mapRow = vy + scrollY;
+      if (mapRow >= MAP_ROWS || mapCol >= MAP_COLS) continue;
+
+      const terrainId = SAMPLE_MAP[mapRow][mapCol];
       const terrain = TERRAINS.find(t => t.id === terrainId);
-      const x = col * DRAW_SIZE;
-      const y = row * DRAW_SIZE;
+      const x = vx * DRAW_SIZE;
+      const y = vy * DRAW_SIZE;
 
       const img = tileImages[terrainId];
       if (img && img.complete && img.naturalWidth > 0) {
         ctx.drawImage(img, x, y, DRAW_SIZE, DRAW_SIZE);
       } else {
-        // フォールバック: 色で描画
         ctx.fillStyle = terrain ? terrain.color : '#ff00ff';
         ctx.fillRect(x, y, DRAW_SIZE, DRAW_SIZE);
       }
@@ -275,34 +311,118 @@ function drawMap() {
   if (document.getElementById('gridToggle').checked) {
     drawGrid();
   }
+  updateScrollInfo();
 }
 
 function drawGrid() {
   ctx.strokeStyle = 'rgba(255,255,255,0.15)';
   ctx.lineWidth = 1;
-  for (let col = 0; col <= MAP_COLS; col++) {
+  for (let col = 0; col <= VIEWPORT_COLS; col++) {
     ctx.beginPath();
     ctx.moveTo(col * DRAW_SIZE + 0.5, 0);
-    ctx.lineTo(col * DRAW_SIZE + 0.5, MAP_ROWS * DRAW_SIZE);
+    ctx.lineTo(col * DRAW_SIZE + 0.5, VIEWPORT_ROWS * DRAW_SIZE);
     ctx.stroke();
   }
-  for (let row = 0; row <= MAP_ROWS; row++) {
+  for (let row = 0; row <= VIEWPORT_ROWS; row++) {
     ctx.beginPath();
     ctx.moveTo(0, row * DRAW_SIZE + 0.5);
-    ctx.lineTo(MAP_COLS * DRAW_SIZE, row * DRAW_SIZE + 0.5);
+    ctx.lineTo(VIEWPORT_COLS * DRAW_SIZE, row * DRAW_SIZE + 0.5);
     ctx.stroke();
   }
 }
 
+function updateScrollInfo() {
+  document.getElementById('scrollHint').textContent =
+    `表示範囲: (${scrollX},${scrollY}) - (${scrollX + VIEWPORT_COLS - 1},${scrollY + VIEWPORT_ROWS - 1}) / 全体: ${MAP_COLS}x${MAP_ROWS}`;
+}
+
+// --- キーボードスクロール ---
+document.addEventListener('keydown', (e) => {
+  switch (e.key) {
+    case 'ArrowLeft':  scrollX--; break;
+    case 'ArrowRight': scrollX++; break;
+    case 'ArrowUp':    scrollY--; break;
+    case 'ArrowDown':  scrollY++; break;
+    default: return;
+  }
+  e.preventDefault();
+  clampScroll();
+  drawMap();
+});
+
+// --- マウスドラッグスクロール ---
+let isDragging = false;
+let dragStartX = 0;
+let dragStartY = 0;
+let dragScrollX = 0;
+let dragScrollY = 0;
+
+canvas.addEventListener('mousedown', (e) => {
+  isDragging = true;
+  dragStartX = e.clientX;
+  dragStartY = e.clientY;
+  dragScrollX = scrollX;
+  dragScrollY = scrollY;
+});
+
+window.addEventListener('mousemove', (e) => {
+  if (!isDragging) return;
+  const dx = dragStartX - e.clientX;
+  const dy = dragStartY - e.clientY;
+  const rect = canvas.getBoundingClientRect();
+  const tileW = rect.width / VIEWPORT_COLS;
+  const tileH = rect.height / VIEWPORT_ROWS;
+  scrollX = dragScrollX + Math.round(dx / tileW);
+  scrollY = dragScrollY + Math.round(dy / tileH);
+  clampScroll();
+  drawMap();
+});
+
+window.addEventListener('mouseup', () => {
+  isDragging = false;
+});
+
+// --- タッチスクロール（スマホ） ---
+let touchStartX = 0;
+let touchStartY = 0;
+let touchScrollX = 0;
+let touchScrollY = 0;
+
+canvas.addEventListener('touchstart', (e) => {
+  const touch = e.touches[0];
+  touchStartX = touch.clientX;
+  touchStartY = touch.clientY;
+  touchScrollX = scrollX;
+  touchScrollY = scrollY;
+  e.preventDefault();
+}, { passive: false });
+
+canvas.addEventListener('touchmove', (e) => {
+  const touch = e.touches[0];
+  const dx = touchStartX - touch.clientX;
+  const dy = touchStartY - touch.clientY;
+  const rect = canvas.getBoundingClientRect();
+  const tileW = rect.width / VIEWPORT_COLS;
+  const tileH = rect.height / VIEWPORT_ROWS;
+  scrollX = touchScrollX + Math.round(dx / tileW);
+  scrollY = touchScrollY + Math.round(dy / tileH);
+  clampScroll();
+  drawMap();
+  e.preventDefault();
+}, { passive: false });
+
 // --- マウスホバーで地形情報表示 ---
 canvas.addEventListener('mousemove', (e) => {
+  if (isDragging) return;
   const rect = canvas.getBoundingClientRect();
   const scaleX = canvas.width / rect.width;
   const scaleY = canvas.height / rect.height;
   const mx = (e.clientX - rect.left) * scaleX;
   const my = (e.clientY - rect.top) * scaleY;
-  const col = Math.floor(mx / DRAW_SIZE);
-  const row = Math.floor(my / DRAW_SIZE);
+  const vx = Math.floor(mx / DRAW_SIZE);
+  const vy = Math.floor(my / DRAW_SIZE);
+  const col = vx + scrollX;
+  const row = vy + scrollY;
 
   if (row >= 0 && row < MAP_ROWS && col >= 0 && col < MAP_COLS) {
     const terrainId = SAMPLE_MAP[row][col];
@@ -354,7 +474,6 @@ resizeCanvas();
 loadTileImages(() => {
   drawMap();
 });
-// フォールバック: 画像読み込み前にも描画
 setTimeout(drawMap, 100);
 </script>
 </body>
