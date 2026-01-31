@@ -151,7 +151,7 @@
   <div class="map-area" data-testid="map-area">
     <canvas id="mapCanvas" data-testid="map-canvas"></canvas>
     <div class="terrain-overlay" id="terrainOverlay" data-testid="terrain-overlay">
-      <span id="coordText" data-testid="coord-text">(0,0)</span> | <span id="terrainName" data-testid="terrain-name">-</span>
+      <span id="coordText" data-testid="coord-text">(0,0)</span> | <span id="terrainName" data-testid="terrain-name">-</span><span id="unitInfo" data-testid="unit-info"></span>
     </div>
   </div>
 
@@ -217,6 +217,31 @@ const TERRAINS = [
 
 const TERRAIN_MAP = new Map(TERRAINS.map(t => [t.id, t]));
 
+// --- 移動コスト定数・テーブル (2-1) ---
+const COST_ALL = -1;
+const COST_BLOCKED = -2;
+
+const MOVEMENT_COST_TABLE = {
+  1:  { general: 1,  amphibious: 1,  ship: 1 },
+  2:  { general: 1,  amphibious: 1,  ship: 1 },
+  3:  { general: 2,  amphibious: 2,  ship: 1 },
+  4:  { general: 3,  amphibious: 3,  ship: 1 },
+  5:  { general: 3,  amphibious: 1,  ship: 1 },
+  6:  { general: 3,  amphibious: 3,  ship: 1 },
+  7:  { general: -1, amphibious: -1, ship: -1 },
+  8:  { general: -2, amphibious: -2, ship: -2 },
+  9:  { general: 1,  amphibious: 1,  ship: 1 },
+  10: { general: 1,  amphibious: 1,  ship: 1 },
+  11: { general: -2, amphibious: -2, ship: -2 },
+  12: { general: 1,  amphibious: 1,  ship: 1 },
+  13: { general: 1,  amphibious: 1,  ship: 1 },
+  14: { general: 1,  amphibious: 1,  ship: 1 },
+  15: { general: 1,  amphibious: 1,  ship: 1 },
+  16: { general: 1,  amphibious: 1,  ship: 1 },
+  17: { general: 1,  amphibious: 1,  ship: 1 },
+  18: { general: 1,  amphibious: 1,  ship: 1 },
+};
+
 const TILE_SIZE = 16;
 const MIN_SCALE = 1;
 const MAX_SCALE = 4;
@@ -253,6 +278,33 @@ const SAMPLE_MAP = [
 
 const MAP_COLS = SAMPLE_MAP[0].length;
 const MAP_ROWS = SAMPLE_MAP.length;
+
+// --- サンプルユニットデータ (2-1) ---
+const SAMPLE_UNITS = [
+  { id: 1,  player: 1, type: 'general',    name: 'ZAKU',    col: 2,  row: 2,  mv: 4, moved: false, hp: 100 },
+  { id: 2,  player: 1, type: 'general',    name: 'DOM',     col: 3,  row: 5,  mv: 4, moved: false, hp: 100 },
+  { id: 3,  player: 1, type: 'amphibious', name: 'ZGOK',    col: 5,  row: 8,  mv: 4, moved: false, hp: 100 },
+  { id: 4,  player: 1, type: 'ship',       name: 'MOUSAI',  col: 1,  row: 4,  mv: 5, moved: false, hp: 100 },
+  { id: 5,  player: 2, type: 'general',    name: 'GM',      col: 22, row: 2,  mv: 4, moved: false, hp: 80 },
+  { id: 6,  player: 2, type: 'general',    name: 'GUNDAM',  col: 20, row: 5,  mv: 6, moved: false, hp: 100 },
+  { id: 7,  player: 2, type: 'amphibious', name: 'AQUA-GM', col: 18, row: 8,  mv: 4, moved: false, hp: 100 },
+  { id: 8,  player: 2, type: 'ship',       name: 'SALAMIS', col: 23, row: 4,  mv: 5, moved: false, hp: 100 },
+];
+
+let units = SAMPLE_UNITS.map(u => ({...u, spriteImage: null}));
+let selectedUnitId = -1;
+let movementRange = {};
+let currentPlayer = 1;
+
+// --- アニメーション状態 (2-1) ---
+let isAnimating = false;
+let animatingUnitId = -1;
+let animationPath = [];
+let animationStep = 0;
+let animationProgress = 0;
+let animationSpeed = 100;
+let animationTimerId = null;
+let animationResolve = null;
 
 // --- 状態 ---
 let scale = 2;
@@ -320,6 +372,18 @@ function updateGameState() {
     MIN_SCALE,
     MAX_SCALE,
     SCROLL_SPEED,
+    // 2-1 追加
+    units,
+    selectedUnitId,
+    movementRange,
+    currentPlayer,
+    MOVEMENT_COST_TABLE,
+    COST_ALL,
+    COST_BLOCKED,
+    // アニメーション状態
+    isAnimating,
+    animatingUnitId,
+    animationPath: animationPath.map(p => ({col: p.col, row: p.row})),
   };
 }
 
@@ -340,6 +404,28 @@ function loadTileImages(callback) {
   });
 }
 
+// --- ユニットスプライト読み込み (2-1) ---
+function loadUnitSprites(callback) {
+  const basePath = '../assets/units/';
+  let loaded = 0;
+  const total = units.length;
+  if (total === 0) { callback(); return; }
+  units.forEach(unit => {
+    const color = unit.player === 1 ? 'b' : 'r';
+    const fileName = unit.name.toLowerCase() + color + 'btlf.gif';
+    const img = new Image();
+    img.onload = () => {
+      unit.spriteImage = img;
+      if (++loaded === total) callback();
+    };
+    img.onerror = () => {
+      unit.spriteImage = null;
+      if (++loaded === total) callback();
+    };
+    img.src = basePath + fileName;
+  });
+}
+
 // --- メインCanvas ---
 const canvas = document.getElementById('mapCanvas');
 const ctx = canvas.getContext('2d');
@@ -351,6 +437,232 @@ function resizeCanvas() {
   canvas.width = canvasW;
   canvas.height = canvasH;
   refreshView();
+}
+
+const DIRS = [[0,-1],[0,1],[-1,0],[1,0]];
+
+// --- ユニットヘルパー関数 (2-1) ---
+function getUnitAtPos(col, row) {
+  return units.find(u => u.col === col && u.row === row) || null;
+}
+
+function calculateMovementRangeForUnit(unit) {
+  const reachable = {};
+  const visited = {};
+  const queue = [[0, unit.col, unit.row]];
+
+  while (queue.length > 0) {
+    queue.sort((a, b) => a[0] - b[0]);
+    const [cost, col, row] = queue.shift();
+    const key = col + ',' + row;
+
+    if (visited[key]) continue;
+    visited[key] = true;
+    reachable[key] = unit.mv - cost;
+
+    // 敵ユニットがいるタイルからは展開しない
+    const unitHere = getUnitAtPos(col, row);
+    if (unitHere && unitHere.player !== currentPlayer) continue;
+
+    for (const [dc, dr] of DIRS) {
+      const nc = col + dc;
+      const nr = row + dr;
+      if (nc < 0 || nc >= MAP_COLS || nr < 0 || nr >= MAP_ROWS) continue;
+      const nkey = nc + ',' + nr;
+      if (visited[nkey]) continue;
+
+      const terrainId = SAMPLE_MAP[nr][nc];
+      const moveCost = MOVEMENT_COST_TABLE[terrainId][unit.type];
+
+      if (moveCost === COST_BLOCKED) continue;
+
+      if (moveCost === COST_ALL) {
+        if (cost < unit.mv && !visited[nkey]) {
+          reachable[nkey] = 0;
+          visited[nkey] = true;
+        }
+        continue;
+      }
+
+      const newCost = cost + moveCost;
+      if (newCost <= unit.mv) {
+        queue.push([newCost, nc, nr]);
+      }
+    }
+  }
+
+  // 起点を除外
+  delete reachable[unit.col + ',' + unit.row];
+
+  // 自軍ユニットが占有するタイルを除外（通過は可能）
+  units.forEach(u => {
+    if (u.player === currentPlayer && u.id !== unit.id) {
+      delete reachable[u.col + ',' + u.row];
+    }
+  });
+
+  return reachable;
+}
+
+function selectUnitById(unitId) {
+  const unit = units.find(u => u.id === unitId);
+  if (!unit || unit.player !== currentPlayer || unit.moved) return;
+  selectedUnitId = unitId;
+  movementRange = calculateMovementRangeForUnit(unit);
+  selectedCol = -1;
+  selectedRow = -1;
+  blinkVisible = true;
+  refreshView();
+}
+
+function deselectUnit() {
+  selectedUnitId = -1;
+  movementRange = {};
+  blinkVisible = true;
+  refreshView();
+}
+
+// --- 経路計算（ダイクストラ + 親ポインタ） ---
+function findPath(fromCol, fromRow, toCol, toRow, unit) {
+  const bestCost = {};
+  const parent = {};
+  const queue = [[0, fromCol, fromRow]];
+  const startKey = fromCol + ',' + fromRow;
+  bestCost[startKey] = 0;
+  parent[startKey] = null;
+
+  while (queue.length > 0) {
+    queue.sort((a, b) => a[0] - b[0]);
+    const [cost, c, r] = queue.shift();
+    const key = c + ',' + r;
+    if (cost > (bestCost[key] !== undefined ? bestCost[key] : Infinity)) continue;
+    if (c === toCol && r === toRow) break;
+
+    const unitHere = getUnitAtPos(c, r);
+    if (unitHere && unitHere.player !== currentPlayer && !(c === fromCol && r === fromRow)) continue;
+
+    for (const [dc, dr] of DIRS) {
+      const nc = c + dc;
+      const nr = r + dr;
+      if (nc < 0 || nc >= MAP_COLS || nr < 0 || nr >= MAP_ROWS) continue;
+      const nkey = nc + ',' + nr;
+      const terrainId = SAMPLE_MAP[nr][nc];
+      const moveCost = MOVEMENT_COST_TABLE[terrainId][unit.type];
+      if (moveCost === COST_BLOCKED) continue;
+      if (moveCost === COST_ALL) {
+        if (cost < unit.mv && bestCost[nkey] === undefined) {
+          bestCost[nkey] = unit.mv;
+          parent[nkey] = key;
+        }
+        continue;
+      }
+      const newCost = cost + moveCost;
+      if (newCost <= unit.mv && newCost < (bestCost[nkey] !== undefined ? bestCost[nkey] : Infinity)) {
+        bestCost[nkey] = newCost;
+        parent[nkey] = key;
+        queue.push([newCost, nc, nr]);
+      }
+    }
+  }
+
+  const destKey = toCol + ',' + toRow;
+  if (parent[destKey] === undefined && destKey !== startKey) return [];
+  const path = [];
+  let cur = destKey;
+  while (cur !== null) {
+    const parts = cur.split(',');
+    path.unshift({col: parseInt(parts[0]), row: parseInt(parts[1])});
+    cur = parent[cur];
+  }
+  return path;
+}
+
+// --- 移動アニメーション ---
+function startMoveAnimation(unit, path) {
+  if (path.length <= 1 || animationSpeed === 0) return;
+  isAnimating = true;
+  animatingUnitId = unit.id;
+  animationPath = path;
+  animationStep = 0;
+  animationProgress = 0;
+  updateGameState();
+
+  const startTime = performance.now();
+  const totalDuration = (path.length - 1) * animationSpeed;
+
+  function tick() {
+    const elapsed = performance.now() - startTime;
+    const totalProgress = Math.min(elapsed / totalDuration, 1);
+    const rawStep = totalProgress * (path.length - 1);
+    animationStep = Math.min(Math.floor(rawStep), path.length - 2);
+    animationProgress = rawStep - animationStep;
+    drawMap();
+    updateGameState();
+    if (totalProgress < 1) {
+      animationTimerId = requestAnimationFrame(tick);
+    } else {
+      isAnimating = false;
+      animatingUnitId = -1;
+      animationPath = [];
+      animationTimerId = null;
+      drawMap();
+      updateGameState();
+      if (animationResolve) {
+        const resolve = animationResolve;
+        animationResolve = null;
+        resolve();
+      }
+    }
+  }
+  animationTimerId = requestAnimationFrame(tick);
+}
+
+function executeMove(unit, col, row, animate) {
+  const enemyUnit = getUnitAtPos(col, row);
+  if (enemyUnit && enemyUnit.player !== currentPlayer) {
+    console.log('Battle: ' + unit.name + ' vs ' + enemyUnit.name);
+  }
+  const path = animate ? findPath(unit.col, unit.row, col, row, unit) : null;
+  unit.col = col;
+  unit.row = row;
+  unit.moved = true;
+  if (path && path.length > 1) startMoveAnimation(unit, path);
+  deselectUnit();
+}
+
+function handleTileClick(col, row) {
+  if (isAnimating) return;
+  if (col < 0 || col >= MAP_COLS || row < 0 || row >= MAP_ROWS) return;
+
+  const clickedUnit = getUnitAtPos(col, row);
+
+  // 優先1: 自軍未移動ユニット → 選択/切替/解除
+  if (clickedUnit && clickedUnit.player === currentPlayer && !clickedUnit.moved) {
+    if (selectedUnitId === clickedUnit.id) {
+      deselectUnit();
+    } else {
+      selectUnitById(clickedUnit.id);
+    }
+    return;
+  }
+
+  // 優先2: ユニット選択中 + 移動範囲内 → 移動実行
+  if (selectedUnitId !== -1) {
+    const key = col + ',' + row;
+    if (movementRange[key] !== undefined) {
+      const unit = units.find(u => u.id === selectedUnitId);
+      if (unit) {
+        executeMove(unit, col, row, true);
+        return;
+      }
+    }
+    // 範囲外 → 選択解除
+    deselectUnit();
+    return;
+  }
+
+  // ユニット操作なし → タイル選択（1-1互換）
+  toggleSelection(col, row);
 }
 
 // --- マップ描画 ---
@@ -392,6 +704,73 @@ function drawMap() {
     ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvasW, y); ctx.stroke();
   }
 
+  // 移動範囲ハイライト (2-1)
+  if (selectedUnitId !== -1) {
+    for (const key of Object.keys(movementRange)) {
+      const parts = key.split(',');
+      const c = parseInt(parts[0]);
+      const r = parseInt(parts[1]);
+      if (c < startCol || c > endCol || r < startRow || r > endRow) continue;
+      const rx = c * t - scrollX;
+      const ry = r * t - scrollY;
+      const enemyUnit = getUnitAtPos(c, r);
+      if (enemyUnit && enemyUnit.player !== currentPlayer) {
+        ctx.fillStyle = 'rgba(255, 64, 64, 0.25)';
+        ctx.fillRect(rx, ry, t, t);
+        ctx.strokeStyle = 'rgba(255, 64, 64, 0.6)';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(rx + 0.5, ry + 0.5, t - 1, t - 1);
+      } else {
+        ctx.fillStyle = 'rgba(0, 160, 255, 0.25)';
+        ctx.fillRect(rx, ry, t, t);
+        ctx.strokeStyle = 'rgba(0, 160, 255, 0.6)';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(rx + 0.5, ry + 0.5, t - 1, t - 1);
+      }
+    }
+  }
+
+  // ユニットスプライト描画 (2-1)
+  for (const unit of units) {
+    // アニメーション中は補間位置を使用
+    let drawCol = unit.col;
+    let drawRow = unit.row;
+    if (isAnimating && unit.id === animatingUnitId && animationPath.length > 1) {
+      const from = animationPath[animationStep];
+      const to = animationPath[Math.min(animationStep + 1, animationPath.length - 1)];
+      drawCol = from.col + (to.col - from.col) * animationProgress;
+      drawRow = from.row + (to.row - from.row) * animationProgress;
+    }
+    if (drawCol < startCol - 1 || drawCol > endCol + 1 || drawRow < startRow - 1 || drawRow > endRow + 1) continue;
+    const ux = drawCol * t - scrollX;
+    const uy = drawRow * t - scrollY;
+    if (unit.moved) ctx.globalAlpha = 0.4;
+    if (unit.spriteImage && unit.spriteImage.complete && unit.spriteImage.naturalWidth > 0) {
+      const sw = t * 0.75;
+      const sh = t * 1.0;
+      const dx = ux + (t - sw) / 2;
+      const dy = uy + (t - sh) / 2;
+      ctx.drawImage(unit.spriteImage, dx, dy, sw, sh);
+    } else {
+      const cr = t * 0.35;
+      const ccx = ux + t / 2;
+      const ccy = uy + t / 2;
+      ctx.beginPath();
+      ctx.arc(ccx, ccy, cr, 0, Math.PI * 2);
+      ctx.fillStyle = unit.player === 1 ? '#4488ff' : '#ff4488';
+      ctx.fill();
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold ' + Math.max(8, t * 0.4) + 'px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(unit.name[0], ccx, ccy);
+    }
+    ctx.globalAlpha = 1.0;
+  }
+
   // ホバーハイライト
   if (hoverCol >= 0 && hoverRow >= 0 && hoverCol < MAP_COLS && hoverRow < MAP_ROWS) {
     const hx = hoverCol * t - scrollX;
@@ -403,7 +782,21 @@ function drawMap() {
     ctx.strokeRect(hx + 1, hy + 1, t - 2, t - 2);
   }
 
-  // 選択ハイライト（点滅）
+  // ユニット選択ハイライト（白い点滅枠）(2-1)
+  if (blinkVisible && selectedUnitId !== -1) {
+    const su = units.find(u => u.id === selectedUnitId);
+    if (su) {
+      const sux = su.col * t - scrollX;
+      const suy = su.row * t - scrollY;
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
+      ctx.fillRect(sux, suy, t, t);
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(sux + 1, suy + 1, t - 2, t - 2);
+    }
+  }
+
+  // タイル選択ハイライト（黄色点滅）
   if (blinkVisible && selectedCol >= 0 && selectedRow >= 0 && selectedCol < MAP_COLS && selectedRow < MAP_ROWS) {
     const sx = selectedCol * t - scrollX;
     const sy = selectedRow * t - scrollY;
@@ -440,6 +833,15 @@ function drawMiniMap() {
     }
   }
 
+  // ユニットドット描画 (2-1)
+  for (const unit of units) {
+    const dx = unit.col * tileW;
+    const dy = unit.row * tileH;
+    const dotSize = Math.max(tileW, 2);
+    miniCtx.fillStyle = unit.player === 1 ? '#4488ff' : '#ff4488';
+    miniCtx.fillRect(dx, dy, dotSize, dotSize);
+  }
+
   const t = ts();
   const vx = (scrollX / (MAP_COLS * t)) * mw;
   const vy = (scrollY / (MAP_ROWS * t)) * mh;
@@ -454,14 +856,23 @@ function drawMiniMap() {
 const terrainOverlay = document.getElementById('terrainOverlay');
 const coordText = document.getElementById('coordText');
 const terrainNameEl = document.getElementById('terrainName');
+const unitInfoEl = document.getElementById('unitInfo');
 
 function updateTerrainOverlay(col, row) {
   if (col >= 0 && col < MAP_COLS && row >= 0 && row < MAP_ROWS) {
     const terrain = TERRAIN_MAP.get(SAMPLE_MAP[row][col]);
     coordText.textContent = '(' + col + ',' + row + ')';
     terrainNameEl.textContent = terrain ? terrain.name : '不明';
+    // ユニット情報 (2-1)
+    const unitAtHover = getUnitAtPos(col, row);
+    if (unitAtHover) {
+      unitInfoEl.textContent = ' | ' + unitAtHover.name + ' [' + unitAtHover.hp + '%] MV:' + unitAtHover.mv;
+    } else {
+      unitInfoEl.textContent = '';
+    }
     terrainOverlay.classList.add('visible');
   } else {
+    unitInfoEl.textContent = '';
     terrainOverlay.classList.remove('visible');
   }
 }
@@ -473,6 +884,13 @@ document.addEventListener('keydown', (e) => {
     case 'ArrowRight': scrollX += SCROLL_SPEED; break;
     case 'ArrowUp':    scrollY -= SCROLL_SPEED; break;
     case 'ArrowDown':  scrollY += SCROLL_SPEED; break;
+    case 'Escape':
+      if (isAnimating) return;
+      if (selectedUnitId !== -1) {
+        deselectUnit();
+        e.preventDefault();
+      }
+      return;
     default: return;
   }
   e.preventDefault();
@@ -559,7 +977,7 @@ function toggleSelection(col, row) {
 window.addEventListener('mouseup', (e) => {
   if (isDragging && !dragMoved) {
     const { col, row } = canvasToMap(e.clientX, e.clientY);
-    toggleSelection(col, row);
+    handleTileClick(col, row);
   }
   isDragging = false;
   miniDragging = false;
@@ -624,7 +1042,7 @@ canvas.addEventListener('touchend', (e) => {
   e.preventDefault();
   if (touchMode === 'drag' && !touchMoved) {
     const { col, row } = canvasToMap(touchStartX, touchStartY);
-    toggleSelection(col, row);
+    handleTileClick(col, row);
   }
   if (e.touches.length === 0) {
     touchMode = 'none';
@@ -640,17 +1058,61 @@ canvas.addEventListener('touchend', (e) => {
 
 // --- 選択カーソル点滅 ---
 setInterval(() => {
-  if (selectedCol >= 0 && selectedRow >= 0) {
+  if ((selectedCol >= 0 && selectedRow >= 0) || selectedUnitId !== -1) {
     blinkVisible = !blinkVisible;
     drawMap();
   }
 }, 500);
 
+// --- グローバルテスト関数 (2-1) ---
+window.resetTurn = function() {
+  units.forEach(u => { u.moved = false; });
+  refreshView();
+};
+
+window.selectUnit = function(unitId) {
+  selectUnitById(unitId);
+};
+
+window.moveUnit = function(unitId, col, row) {
+  const unit = units.find(u => u.id === unitId);
+  if (!unit || selectedUnitId !== unitId) return false;
+  const key = col + ',' + row;
+  if (movementRange[key] === undefined) return false;
+  executeMove(unit, col, row, false);
+  return true;
+};
+
+window.getUnitAt = function(col, row) {
+  return getUnitAtPos(col, row);
+};
+
+window.calculateMovementRange = function(unitId) {
+  const unit = units.find(u => u.id === unitId);
+  if (!unit) return {};
+  return calculateMovementRangeForUnit(unit);
+};
+
+window._SAMPLE_MAP = SAMPLE_MAP;
+
+window.setAnimationSpeed = function(ms) {
+  animationSpeed = ms;
+};
+
+window.waitForAnimation = function() {
+  if (!isAnimating) return Promise.resolve();
+  return new Promise(function(resolve) {
+    animationResolve = resolve;
+  });
+};
+
 // --- 初期化 ---
 window.addEventListener('resize', resizeCanvas);
 loadTileImages(() => {
-  resizeCanvas();
-  updateGameState();
+  loadUnitSprites(() => {
+    resizeCanvas();
+    updateGameState();
+  });
 });
 setTimeout(() => {
   resizeCanvas();
