@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>1-1 マップ表示 モックアップ</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #1a1a2e;
+    color: #e0e0e0;
+    font-family: 'Courier New', monospace;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 100vh;
+    padding: 16px;
+  }
+  h1 {
+    font-size: 16px;
+    margin-bottom: 8px;
+    color: #aaa;
+  }
+  .main-container {
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+  }
+  .map-area {
+    border: 2px solid #444;
+    background: #000;
+    position: relative;
+  }
+  #mapCanvas {
+    display: block;
+    image-rendering: pixelated;
+  }
+  .side-panel {
+    width: 220px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .panel-box {
+    border: 1px solid #555;
+    background: #16213e;
+    padding: 8px;
+    border-radius: 4px;
+  }
+  .panel-box h2 {
+    font-size: 12px;
+    color: #8899aa;
+    margin-bottom: 6px;
+    border-bottom: 1px solid #333;
+    padding-bottom: 4px;
+  }
+  .terrain-info {
+    font-size: 14px;
+  }
+  .terrain-info .name { color: #fff; font-weight: bold; }
+  .terrain-info .coord { color: #88aacc; font-size: 12px; }
+  .terrain-info .detail { color: #aaa; font-size: 11px; margin-top: 4px; }
+  .legend-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2px;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 10px;
+    padding: 2px;
+    cursor: pointer;
+    border-radius: 2px;
+  }
+  .legend-item:hover { background: #2a3a5e; }
+  .legend-item img {
+    width: 16px;
+    height: 16px;
+    image-rendering: pixelated;
+  }
+  .map-selector {
+    font-size: 12px;
+  }
+  .map-selector select {
+    width: 100%;
+    padding: 4px;
+    background: #0f3460;
+    color: #e0e0e0;
+    border: 1px solid #555;
+    border-radius: 2px;
+    margin-top: 4px;
+  }
+  .grid-overlay-toggle {
+    font-size: 11px;
+    margin-top: 4px;
+  }
+  .grid-overlay-toggle label { cursor: pointer; }
+  .note {
+    margin-top: 12px;
+    font-size: 11px;
+    color: #666;
+    max-width: 700px;
+    text-align: center;
+  }
+</style>
+</head>
+<body>
+
+<h1>1-1 マップ表示 モックアップ</h1>
+
+<div class="main-container">
+  <!-- マップ描画エリア -->
+  <div class="map-area">
+    <canvas id="mapCanvas" width="512" height="512"></canvas>
+  </div>
+
+  <!-- サイドパネル -->
+  <div class="side-panel">
+
+    <!-- マップ選択 -->
+    <div class="panel-box map-selector">
+      <h2>マップ選択</h2>
+      <select id="mapSelect"></select>
+      <div id="mapSize" style="margin-top:4px; color:#888; font-size:11px;"></div>
+    </div>
+
+    <!-- カーソル位置の地形情報 -->
+    <div class="panel-box terrain-info" id="terrainInfo">
+      <h2>地形情報</h2>
+      <div class="coord" id="coordText">座標: -</div>
+      <div class="name" id="terrainName">-</div>
+      <div class="detail" id="terrainDetail">マップ上にカーソルを合わせてください</div>
+    </div>
+
+    <!-- グリッド表示切替 -->
+    <div class="panel-box">
+      <div class="grid-overlay-toggle">
+        <label><input type="checkbox" id="gridToggle" checked> グリッド線を表示</label>
+      </div>
+    </div>
+
+    <!-- 地形凡例 -->
+    <div class="panel-box">
+      <h2>地形一覧 (18種)</h2>
+      <div class="legend-grid" id="legendGrid"></div>
+    </div>
+  </div>
+</div>
+
+<div class="note">
+  ※ このモックアップは仕様書 1-1「マップ表示」の画面イメージです。<br>
+  実際の実装では Canvas (HTML5) を使用してマップを描画します。<br>
+  マップデータはサンプルです。実際のマップデータは別途定義します。
+</div>
+
+<script>
+// --- 地形定義 (18種) ---
+const TERRAINS = [
+  { id: 1,  name: '宇宙',         file: 'space.gif',      color: '#000000', passable: true },
+  { id: 2,  name: '平野',         file: 'plainicon.gif',  color: '#00aa00', passable: true },
+  { id: 3,  name: '森林',         file: 'foresticon.gif', color: '#006600', passable: true },
+  { id: 4,  name: 'アステロイド', file: 'aste.gif',       color: '#666666', passable: true },
+  { id: 5,  name: '水中',         file: 'seaicon.gif',    color: '#0044cc', passable: true },
+  { id: 6,  name: '砂漠',         file: 'deserticon.gif', color: '#ccaa00', passable: true },
+  { id: 7,  name: '大気圏',       file: 'air.gif',        color: '#884400', passable: true },
+  { id: 8,  name: '火山',         file: 'volicon.gif',    color: '#cc4400', passable: false },
+  { id: 9,  name: '小惑星',       file: 'moon.gif',       color: '#999999', passable: true },
+  { id: 10, name: 'クレータ',     file: 'cresmall.gif',   color: '#aaaaaa', passable: true },
+  { id: 11, name: 'ブラックホール', file: 'bhole.gif',    color: '#220022', passable: false },
+  { id: 12, name: '大クレータ',   file: 'crelarge.gif',   color: '#bbbbbb', passable: true },
+  { id: 13, name: 'GP',           file: 'redgpicon.gif',  color: '#cc0000', passable: true },
+  { id: 14, name: 'GB',           file: 'redgb.gif',      color: '#0000cc', passable: true },
+  { id: 15, name: '都市',         file: 'cityicon.gif',   color: '#888888', passable: true },
+  { id: 16, name: 'コロニー',     file: 'colony.gif',     color: '#44aa88', passable: true },
+  { id: 17, name: '補給基地',     file: 'baseicon.gif',   color: '#aa8844', passable: true },
+  { id: 18, name: 'スペースベース', file: 'sbase.gif',    color: '#4488aa', passable: true },
+];
+
+const TILE_SIZE = 16;
+const SCALE = 2; // 表示倍率
+const DRAW_SIZE = TILE_SIZE * SCALE;
+
+// --- サンプルマップデータ (16x16) ---
+// 地形IDの2次元配列
+const SAMPLE_MAP = [
+  [ 1, 1, 1, 1, 4, 4, 1, 1, 1, 1, 1, 1, 9, 9, 1, 1],
+  [ 1, 1, 1, 4, 4, 1, 1,16, 1, 1, 1, 1, 1, 9, 1, 1],
+  [ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,11, 1, 1, 1, 1, 1],
+  [ 1, 1,13, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+  [ 1, 1, 1, 1, 2, 2, 3, 3, 2, 2, 1, 1, 1, 1, 1, 1],
+  [ 1, 1, 1, 2, 2, 3, 3, 5, 5, 2, 2, 1, 1, 1, 1, 1],
+  [ 1, 1, 1, 2, 3,15, 2, 5, 2,15, 3, 2, 1, 1, 1, 1],
+  [ 1, 1, 1, 2, 3, 2, 6, 6, 6, 2, 3, 2, 1, 1, 1, 1],
+  [ 1, 1, 1, 2, 3, 2, 6, 8, 6, 2, 3, 2, 1, 1,18, 1],
+  [ 1, 1, 1, 2, 3,17, 2, 6, 2,17, 3, 2, 1, 1, 1, 1],
+  [ 1, 1, 1, 2, 2, 3, 3, 7, 3, 3, 2, 2, 1, 1, 1, 1],
+  [ 1, 1, 1, 1, 2, 2, 3, 3, 3, 2, 2, 1, 1, 1, 1, 1],
+  [ 1, 1, 1, 1, 1, 1, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1],
+  [ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,14, 1, 1],
+  [ 1,10,10, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+  [ 1,10,12, 1, 1, 1, 1, 1, 1, 1, 1, 4, 4, 1, 1, 1],
+];
+
+const MAP_COLS = SAMPLE_MAP[0].length;
+const MAP_ROWS = SAMPLE_MAP.length;
+
+// --- 画像の読み込み ---
+const tileImages = {};
+let loadedCount = 0;
+
+function loadTileImages(callback) {
+  const basePath = '../../assets/terrain/';
+  TERRAINS.forEach(t => {
+    const img = new Image();
+    img.onload = () => {
+      loadedCount++;
+      if (loadedCount === TERRAINS.length) callback();
+    };
+    img.onerror = () => {
+      // 画像が読み込めない場合はフォールバック用にnullを設定
+      tileImages[t.id] = null;
+      loadedCount++;
+      if (loadedCount === TERRAINS.length) callback();
+    };
+    img.src = basePath + t.file;
+    tileImages[t.id] = img;
+  });
+}
+
+// --- 描画処理 ---
+const canvas = document.getElementById('mapCanvas');
+const ctx = canvas.getContext('2d');
+
+function resizeCanvas() {
+  canvas.width = MAP_COLS * DRAW_SIZE;
+  canvas.height = MAP_ROWS * DRAW_SIZE;
+}
+
+function drawMap() {
+  ctx.imageSmoothingEnabled = false;
+  for (let row = 0; row < MAP_ROWS; row++) {
+    for (let col = 0; col < MAP_COLS; col++) {
+      const terrainId = SAMPLE_MAP[row][col];
+      const terrain = TERRAINS.find(t => t.id === terrainId);
+      const x = col * DRAW_SIZE;
+      const y = row * DRAW_SIZE;
+
+      const img = tileImages[terrainId];
+      if (img && img.complete && img.naturalWidth > 0) {
+        ctx.drawImage(img, x, y, DRAW_SIZE, DRAW_SIZE);
+      } else {
+        // フォールバック: 色で描画
+        ctx.fillStyle = terrain ? terrain.color : '#ff00ff';
+        ctx.fillRect(x, y, DRAW_SIZE, DRAW_SIZE);
+      }
+    }
+  }
+  if (document.getElementById('gridToggle').checked) {
+    drawGrid();
+  }
+}
+
+function drawGrid() {
+  ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+  ctx.lineWidth = 1;
+  for (let col = 0; col <= MAP_COLS; col++) {
+    ctx.beginPath();
+    ctx.moveTo(col * DRAW_SIZE + 0.5, 0);
+    ctx.lineTo(col * DRAW_SIZE + 0.5, MAP_ROWS * DRAW_SIZE);
+    ctx.stroke();
+  }
+  for (let row = 0; row <= MAP_ROWS; row++) {
+    ctx.beginPath();
+    ctx.moveTo(0, row * DRAW_SIZE + 0.5);
+    ctx.lineTo(MAP_COLS * DRAW_SIZE, row * DRAW_SIZE + 0.5);
+    ctx.stroke();
+  }
+}
+
+// --- マウスホバーで地形情報表示 ---
+canvas.addEventListener('mousemove', (e) => {
+  const rect = canvas.getBoundingClientRect();
+  const scaleX = canvas.width / rect.width;
+  const scaleY = canvas.height / rect.height;
+  const mx = (e.clientX - rect.left) * scaleX;
+  const my = (e.clientY - rect.top) * scaleY;
+  const col = Math.floor(mx / DRAW_SIZE);
+  const row = Math.floor(my / DRAW_SIZE);
+
+  if (row >= 0 && row < MAP_ROWS && col >= 0 && col < MAP_COLS) {
+    const terrainId = SAMPLE_MAP[row][col];
+    const terrain = TERRAINS.find(t => t.id === terrainId);
+    document.getElementById('coordText').textContent = `座標: (${col}, ${row})`;
+    document.getElementById('terrainName').textContent = terrain ? terrain.name : '不明';
+    const passText = terrain ? (terrain.passable ? '通行可能' : '進入不可') : '-';
+    document.getElementById('terrainDetail').textContent = `地形ID: ${terrainId} / ${passText}`;
+  }
+});
+
+canvas.addEventListener('mouseleave', () => {
+  document.getElementById('coordText').textContent = '座標: -';
+  document.getElementById('terrainName').textContent = '-';
+  document.getElementById('terrainDetail').textContent = 'マップ上にカーソルを合わせてください';
+});
+
+// --- 凡例の生成 ---
+function buildLegend() {
+  const grid = document.getElementById('legendGrid');
+  const basePath = '../../assets/terrain/';
+  TERRAINS.forEach(t => {
+    const item = document.createElement('div');
+    item.className = 'legend-item';
+    item.innerHTML = `<img src="${basePath}${t.file}" alt="${t.name}"><span>${t.name}</span>`;
+    grid.appendChild(item);
+  });
+}
+
+// --- マップ選択（デモ用） ---
+function buildMapSelector() {
+  const select = document.getElementById('mapSelect');
+  for (let i = 1; i <= 30; i++) {
+    const opt = document.createElement('option');
+    opt.value = i;
+    opt.textContent = `MAP ${String(i).padStart(2, '0')}`;
+    select.appendChild(opt);
+  }
+  document.getElementById('mapSize').textContent = `サイズ: ${MAP_COLS} x ${MAP_ROWS}`;
+}
+
+// --- グリッド表示切替 ---
+document.getElementById('gridToggle').addEventListener('change', drawMap);
+
+// --- 初期化 ---
+buildLegend();
+buildMapSelector();
+resizeCanvas();
+loadTileImages(() => {
+  drawMap();
+});
+// フォールバック: 画像読み込み前にも描画
+setTimeout(drawMap, 100);
+</script>
+</body>
+</html>
