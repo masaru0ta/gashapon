@@ -1,0 +1,28 @@
+{
+  "name": "gashapon",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "test": "npx playwright test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/masaru0ta/gashapon.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/masaru0ta/gashapon/issues"
+  },
+  "homepage": "https://github.com/masaru0ta/gashapon#readme",
+  "devDependencies": {
+    "@playwright/test": "^1.58.1",
+    "serve": "^14.2.5"
+  }
+}

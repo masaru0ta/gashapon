@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>1-1 マップ表示</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #000;
+    color: #e0e0e0;
+    font-family: 'DotGothic16', 'Courier New', monospace;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  .game-container {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    max-width: 1200px;
+    height: 100vh;
+  }
+
+  /* --- マップエリア --- */
+  .map-area {
+    flex: 1;
+    background: #000;
+    position: relative;
+    overflow: hidden;
+    border-bottom: 2px solid #444;
+  }
+  #mapCanvas {
+    display: block;
+    image-rendering: pixelated;
+    cursor: grab;
+    width: 100%;
+    height: 100%;
+    touch-action: none;
+  }
+  #mapCanvas:active { cursor: grabbing; }
+
+  /* --- 地形情報オーバーレイ --- */
+  .terrain-overlay {
+    position: absolute;
+    bottom: 4px;
+    left: 4px;
+    background: rgba(0, 0, 0, 0.7);
+    padding: 2px 6px;
+    border-radius: 2px;
+    font-size: 10px;
+    color: #ccc;
+    pointer-events: none;
+    display: none;
+  }
+  .terrain-overlay.visible { display: block; }
+
+  /* --- 下部ステータスバー --- */
+  .status-bar {
+    height: 180px;
+    background: #1a1a2e;
+    display: flex;
+    align-items: stretch;
+    border-top: 2px solid #555;
+    flex-shrink: 0;
+    overflow: hidden;
+  }
+
+  .player-info {
+    flex: 1;
+    padding: 8px 16px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 2px;
+    min-width: 0;
+  }
+  .player-info.left { text-align: left; }
+  .player-info.right { text-align: right; }
+
+  .resource-line {
+    font-size: 18px;
+    line-height: 1.2;
+    white-space: nowrap;
+    color: #44cc44;
+  }
+  .stat-line {
+    font-size: 16px;
+    line-height: 1.2;
+    display: flex;
+    gap: 8px;
+  }
+  .player-info.right .stat-line { justify-content: flex-end; }
+  .stat-item { white-space: nowrap; }
+  .stat-item .icon-gp { color: #4488ff; }
+  .stat-item .icon-gb { color: #ff4488; }
+  .stat-item .icon-t { color: #44cc44; }
+
+  .unit-count {
+    font-size: 42px;
+    font-weight: bold;
+    line-height: 1;
+  }
+  .player-info.left .unit-count { color: #4488ff; }
+  .player-info.right .unit-count { color: #ff4488; }
+
+  /* 中央: ミニマップ + ターン */
+  .center-panel {
+    width: 280px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+  }
+  .turn-display {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .turn-number {
+    font-size: 28px;
+    font-weight: bold;
+    color: #44cc44;
+    background: #224422;
+    padding: 0 4px;
+    border-radius: 2px;
+  }
+  .turn-phase {
+    font-size: 24px;
+    color: #cc8844;
+  }
+  #miniMapCanvas {
+    border: 1px solid #888;
+    background: #222;
+    image-rendering: pixelated;
+    cursor: pointer;
+  }
+</style>
+</head>
+<body>
+
+<div class="game-container" data-testid="game-container">
+  <div class="map-area" data-testid="map-area">
+    <canvas id="mapCanvas" data-testid="map-canvas"></canvas>
+    <div class="terrain-overlay" id="terrainOverlay" data-testid="terrain-overlay">
+      <span id="coordText" data-testid="coord-text">(0,0)</span> | <span id="terrainName" data-testid="terrain-name">-</span>
+    </div>
+  </div>
+
+  <div class="status-bar" data-testid="status-bar">
+    <div class="player-info left" data-testid="p1-info">
+      <div class="resource-line" data-testid="p1-ig">IG......550</div>
+      <div class="resource-line" data-testid="p1-ct">CT....14300</div>
+      <div class="stat-line">
+        <span class="stat-item" data-testid="p1-gp"><span class="icon-gp">GP</span>3</span>
+        <span class="stat-item" data-testid="p1-production"><span class="icon-t">T</span>0</span>
+      </div>
+      <div class="stat-line">
+        <span class="stat-item" data-testid="p1-gb"><span class="icon-gb">GB</span>2</span>
+      </div>
+      <div class="unit-count" data-testid="p1-unit-count">21</div>
+    </div>
+
+    <div class="center-panel">
+      <div class="turn-display">
+        <span class="turn-number" data-testid="turn-number">12</span>
+        <span class="turn-phase" data-testid="turn-phase">5T</span>
+      </div>
+      <canvas id="miniMapCanvas" data-testid="mini-map-canvas" width="200" height="120"></canvas>
+    </div>
+
+    <div class="player-info right" data-testid="p2-info">
+      <div class="resource-line" data-testid="p2-ig">IG......1350</div>
+      <div class="resource-line" data-testid="p2-ct">CT......2750</div>
+      <div class="stat-line">
+        <span class="stat-item" data-testid="p2-gp"><span class="icon-gp">GP</span>3</span>
+        <span class="stat-item" data-testid="p2-production"><span class="icon-t">T</span>0</span>
+      </div>
+      <div class="stat-line">
+        <span class="stat-item" data-testid="p2-gb"><span class="icon-gb">GB</span>1</span>
+      </div>
+      <div class="unit-count" data-testid="p2-unit-count">09</div>
+    </div>
+  </div>
+</div>
+
+<script>
+// --- 地形定義 (18種) ---
+const TERRAINS = [
+  { id: 1,  name: '宇宙',           file: 'space.gif',      color: '#000000' },
+  { id: 2,  name: '平野',           file: 'plainicon.gif',  color: '#00aa00' },
+  { id: 3,  name: '森林',           file: 'foresticon.gif', color: '#006600' },
+  { id: 4,  name: 'アステロイド',   file: 'aste.gif',       color: '#666666' },
+  { id: 5,  name: '水中',           file: 'seaicon.gif',    color: '#0044cc' },
+  { id: 6,  name: '砂漠',           file: 'deserticon.gif', color: '#ccaa00' },
+  { id: 7,  name: '大気圏',         file: 'air.gif',        color: '#884400' },
+  { id: 8,  name: '火山',           file: 'volicon.gif',    color: '#cc4400' },
+  { id: 9,  name: '小惑星',         file: 'moon.gif',       color: '#999999' },
+  { id: 10, name: 'クレータ',       file: 'cresmall.gif',   color: '#aaaaaa' },
+  { id: 11, name: 'ブラックホール', file: 'bhole.gif',      color: '#220022' },
+  { id: 12, name: '大クレータ',     file: 'crelarge.gif',   color: '#bbbbbb' },
+  { id: 13, name: 'GP',             file: 'redgpicon.gif',  color: '#cc0000' },
+  { id: 14, name: 'GB',             file: 'redgb.gif',      color: '#0000cc' },
+  { id: 15, name: '都市',           file: 'cityicon.gif',   color: '#888888' },
+  { id: 16, name: 'コロニー',       file: 'colony.gif',     color: '#44aa88' },
+  { id: 17, name: '補給基地',       file: 'baseicon.gif',   color: '#aa8844' },
+  { id: 18, name: 'スペースベース', file: 'sbase.gif',      color: '#4488aa' },
+];
+
+const TERRAIN_MAP = new Map(TERRAINS.map(t => [t.id, t]));
+
+const TILE_SIZE = 16;
+const MIN_SCALE = 1;
+const MAX_SCALE = 4;
+const SCROLL_SPEED = 32;
+
+// --- サンプルマップデータ (25x25) ---
+const SAMPLE_MAP = [
+  [ 1, 1, 1, 1, 4, 4, 1, 1, 1, 1, 1, 1, 9, 9, 1, 1, 1, 1, 1, 1, 1, 4, 4, 1, 1],
+  [ 1, 1, 1, 4, 4, 1, 1,16, 1, 1, 1, 1, 1, 9, 1, 1, 1, 1, 1, 1, 1, 1, 4, 1, 1],
+  [ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,11, 1, 1, 1, 1, 1, 1, 1, 9, 9, 1, 1, 1, 1, 1],
+  [ 1, 1,13, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 9, 1, 1, 1, 1, 1],
+  [ 1, 1, 1, 1, 2, 2, 3, 3, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+  [ 1, 1, 1, 2, 2, 3, 3, 5, 5, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+  [ 1, 1, 1, 2, 3,15, 2, 5, 2,15, 3, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+  [ 1, 1, 1, 2, 3, 2, 6, 6, 6, 2, 3, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+  [ 1, 1, 1, 2, 3, 2, 6, 8, 6, 2, 3, 2, 1, 1,18, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+  [ 1, 1, 1, 2, 3,17, 2, 6, 2,17, 3, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+  [ 1, 1, 1, 2, 2, 3, 3, 7, 3, 3, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+  [ 1, 1, 1, 1, 2, 2, 3, 3, 3, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+  [ 1, 1, 1, 1, 1, 1, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+  [ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,14, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+  [ 1,10,10, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,10,10, 1],
+  [ 1,10,12, 1, 1, 1, 1, 1, 1, 1, 1, 4, 4, 1, 1, 1, 1, 1, 1, 1, 1, 1,10,12, 1],
+  [ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 3, 3, 2, 1, 1, 1, 1, 1],
+  [ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 3, 5, 3, 2, 2, 1, 1, 1, 1],
+  [ 1, 1, 1, 1, 1, 1, 9, 9, 1, 1, 1, 1, 1, 1, 2, 3,15, 5,15, 3, 2, 1, 1, 1, 1],
+  [ 1, 1, 1, 1, 1, 1, 9, 1, 1, 1, 1, 1, 1, 1, 2, 3, 6, 6, 6, 3, 2, 1, 1, 1, 1],
+  [ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 3,17, 8,17, 3, 2, 1, 1, 1, 1],
+  [ 1, 1, 1, 1, 1,16, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 3, 3, 3, 2, 1, 1, 1, 1, 1],
+  [ 1, 1, 1, 1, 1, 1, 1, 1, 1,13, 1, 1, 1, 1, 1, 1, 2, 2, 2, 1, 1, 1, 1, 1, 1],
+  [ 1, 1, 4, 4, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 4, 4, 1, 1],
+  [ 1, 1, 1, 4, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 4, 4, 1, 1, 1],
+];
+
+const MAP_COLS = SAMPLE_MAP[0].length;
+const MAP_ROWS = SAMPLE_MAP.length;
+
+// --- 状態 ---
+let scale = 2;
+let scrollX = 0;
+let scrollY = 0;
+let hoverCol = -1;
+let hoverRow = -1;
+let selectedCol = -1;
+let selectedRow = -1;
+let blinkVisible = true;
+let canvasW = 512;
+let canvasH = 400;
+
+function ts() { return TILE_SIZE * scale; }
+function maxScrollX() { return Math.max(0, MAP_COLS * ts() - canvasW); }
+function maxScrollY() { return Math.max(0, MAP_ROWS * ts() - canvasH); }
+
+function clampScroll() {
+  scrollX = Math.max(0, Math.min(maxScrollX(), scrollX));
+  scrollY = Math.max(0, Math.min(maxScrollY(), scrollY));
+}
+
+function refreshView() {
+  clampScroll();
+  drawMap();
+  drawMiniMap();
+  updateGameState();
+}
+
+function canvasToMap(clientX, clientY) {
+  const rect = canvas.getBoundingClientRect();
+  const cx = (clientX - rect.left) * (canvasW / rect.width);
+  const cy = (clientY - rect.top) * (canvasH / rect.height);
+  return {
+    col: Math.floor((cx + scrollX) / ts()),
+    row: Math.floor((cy + scrollY) / ts()),
+  };
+}
+
+function zoomAt(clientX, clientY, newScale) {
+  const rect = canvas.getBoundingClientRect();
+  const cx = (clientX - rect.left) * (canvasW / rect.width);
+  const cy = (clientY - rect.top) * (canvasH / rect.height);
+  const mapX = (cx + scrollX) / ts();
+  const mapY = (cy + scrollY) / ts();
+  scale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, newScale));
+  scrollX = mapX * ts() - cx;
+  scrollY = mapY * ts() - cy;
+  refreshView();
+}
+
+// --- gameState 公開（仕様書 3.4.3） ---
+function updateGameState() {
+  window.gameState = {
+    scale,
+    scrollX,
+    scrollY,
+    selectedCol,
+    selectedRow,
+    hoverCol,
+    hoverRow,
+    MAP_COLS,
+    MAP_ROWS,
+    TILE_SIZE,
+    MIN_SCALE,
+    MAX_SCALE,
+    SCROLL_SPEED,
+  };
+}
+
+// --- タイル画像読み込み ---
+const tileImages = {};
+let loadedCount = 0;
+
+function loadTileImages(callback) {
+  const basePath = '../assets/terrain/';
+  TERRAINS.forEach(t => {
+    const img = new Image();
+    img.onload = img.onerror = () => {
+      if (!img.naturalWidth) tileImages[t.id] = null;
+      if (++loadedCount === TERRAINS.length) callback();
+    };
+    img.src = basePath + t.file;
+    tileImages[t.id] = img;
+  });
+}
+
+// --- メインCanvas ---
+const canvas = document.getElementById('mapCanvas');
+const ctx = canvas.getContext('2d');
+
+function resizeCanvas() {
+  const mapArea = document.querySelector('.map-area');
+  canvasW = mapArea.clientWidth;
+  canvasH = mapArea.clientHeight;
+  canvas.width = canvasW;
+  canvas.height = canvasH;
+  refreshView();
+}
+
+// --- マップ描画 ---
+function drawMap() {
+  const t = ts();
+  ctx.imageSmoothingEnabled = false;
+  ctx.clearRect(0, 0, canvasW, canvasH);
+
+  const startCol = Math.max(0, Math.floor(scrollX / t));
+  const startRow = Math.max(0, Math.floor(scrollY / t));
+  const endCol = Math.min(MAP_COLS - 1, Math.floor((scrollX + canvasW) / t));
+  const endRow = Math.min(MAP_ROWS - 1, Math.floor((scrollY + canvasH) / t));
+
+  for (let row = startRow; row <= endRow; row++) {
+    for (let col = startCol; col <= endCol; col++) {
+      const id = SAMPLE_MAP[row][col];
+      const x = col * t - scrollX;
+      const y = row * t - scrollY;
+      const img = tileImages[id];
+      if (img && img.complete && img.naturalWidth > 0) {
+        ctx.drawImage(img, x, y, t, t);
+      } else {
+        const terrain = TERRAIN_MAP.get(id);
+        ctx.fillStyle = terrain ? terrain.color : '#ff00ff';
+        ctx.fillRect(x, y, t, t);
+      }
+    }
+  }
+
+  // グリッド線
+  ctx.strokeStyle = 'rgba(200, 200, 200, 0.2)';
+  ctx.lineWidth = 1;
+  for (let c = Math.floor(scrollX / t); c <= Math.ceil((scrollX + canvasW) / t); c++) {
+    const x = Math.round(c * t - scrollX) + 0.5;
+    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvasH); ctx.stroke();
+  }
+  for (let r = Math.floor(scrollY / t); r <= Math.ceil((scrollY + canvasH) / t); r++) {
+    const y = Math.round(r * t - scrollY) + 0.5;
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvasW, y); ctx.stroke();
+  }
+
+  // ホバーハイライト
+  if (hoverCol >= 0 && hoverRow >= 0 && hoverCol < MAP_COLS && hoverRow < MAP_ROWS) {
+    const hx = hoverCol * t - scrollX;
+    const hy = hoverRow * t - scrollY;
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.15)';
+    ctx.fillRect(hx, hy, t, t);
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(hx + 1, hy + 1, t - 2, t - 2);
+  }
+
+  // 選択ハイライト（点滅）
+  if (blinkVisible && selectedCol >= 0 && selectedRow >= 0 && selectedCol < MAP_COLS && selectedRow < MAP_ROWS) {
+    const sx = selectedCol * t - scrollX;
+    const sy = selectedRow * t - scrollY;
+    ctx.strokeStyle = '#ffcc00';
+    ctx.lineWidth = 3;
+    ctx.strokeRect(sx + 1, sy + 1, t - 2, t - 2);
+    const m = Math.max(4, t * 0.2);
+    ctx.fillStyle = '#ffcc00';
+    ctx.fillRect(sx, sy, m, m);
+    ctx.fillRect(sx + t - m, sy, m, m);
+    ctx.fillRect(sx, sy + t - m, m, m);
+    ctx.fillRect(sx + t - m, sy + t - m, m, m);
+  }
+}
+
+// --- ミニマップ描画 ---
+const miniCanvas = document.getElementById('miniMapCanvas');
+const miniCtx = miniCanvas.getContext('2d');
+
+function drawMiniMap() {
+  const mw = miniCanvas.width;
+  const mh = miniCanvas.height;
+  const tileW = mw / MAP_COLS;
+  const tileH = mh / MAP_ROWS;
+
+  miniCtx.imageSmoothingEnabled = false;
+  miniCtx.clearRect(0, 0, mw, mh);
+
+  for (let row = 0; row < MAP_ROWS; row++) {
+    for (let col = 0; col < MAP_COLS; col++) {
+      const terrain = TERRAIN_MAP.get(SAMPLE_MAP[row][col]);
+      miniCtx.fillStyle = terrain ? terrain.color : '#ff00ff';
+      miniCtx.fillRect(col * tileW, row * tileH, Math.ceil(tileW), Math.ceil(tileH));
+    }
+  }
+
+  const t = ts();
+  const vx = (scrollX / (MAP_COLS * t)) * mw;
+  const vy = (scrollY / (MAP_ROWS * t)) * mh;
+  const vw = (canvasW / (MAP_COLS * t)) * mw;
+  const vh = (canvasH / (MAP_ROWS * t)) * mh;
+  miniCtx.strokeStyle = '#ff8800';
+  miniCtx.lineWidth = 2;
+  miniCtx.strokeRect(vx, vy, Math.min(vw, mw - vx), Math.min(vh, mh - vy));
+}
+
+// --- 地形情報オーバーレイ ---
+const terrainOverlay = document.getElementById('terrainOverlay');
+const coordText = document.getElementById('coordText');
+const terrainNameEl = document.getElementById('terrainName');
+
+function updateTerrainOverlay(col, row) {
+  if (col >= 0 && col < MAP_COLS && row >= 0 && row < MAP_ROWS) {
+    const terrain = TERRAIN_MAP.get(SAMPLE_MAP[row][col]);
+    coordText.textContent = '(' + col + ',' + row + ')';
+    terrainNameEl.textContent = terrain ? terrain.name : '不明';
+    terrainOverlay.classList.add('visible');
+  } else {
+    terrainOverlay.classList.remove('visible');
+  }
+}
+
+// --- キーボードスクロール ---
+document.addEventListener('keydown', (e) => {
+  switch (e.key) {
+    case 'ArrowLeft':  scrollX -= SCROLL_SPEED; break;
+    case 'ArrowRight': scrollX += SCROLL_SPEED; break;
+    case 'ArrowUp':    scrollY -= SCROLL_SPEED; break;
+    case 'ArrowDown':  scrollY += SCROLL_SPEED; break;
+    default: return;
+  }
+  e.preventDefault();
+  refreshView();
+});
+
+// --- マウスホイールズーム ---
+canvas.addEventListener('wheel', (e) => {
+  e.preventDefault();
+  zoomAt(e.clientX, e.clientY, scale * (e.deltaY > 0 ? 0.9 : 1.1));
+}, { passive: false });
+
+// --- マウスドラッグスクロール & ミニマップ操作 ---
+let isDragging = false;
+let dragMoved = false;
+let dragStartX, dragStartY, dragScrollX, dragScrollY;
+let miniDragging = false;
+
+function miniMapScrollTo(e) {
+  const rect = miniCanvas.getBoundingClientRect();
+  const t = ts();
+  scrollX = ((e.clientX - rect.left) / rect.width) * MAP_COLS * t - canvasW / 2;
+  scrollY = ((e.clientY - rect.top) / rect.height) * MAP_ROWS * t - canvasH / 2;
+  refreshView();
+}
+
+canvas.addEventListener('mousedown', (e) => {
+  isDragging = true;
+  dragMoved = false;
+  dragStartX = e.clientX;
+  dragStartY = e.clientY;
+  dragScrollX = scrollX;
+  dragScrollY = scrollY;
+});
+
+miniCanvas.addEventListener('mousedown', (e) => {
+  e.preventDefault();
+  miniDragging = true;
+  miniMapScrollTo(e);
+});
+
+window.addEventListener('mousemove', (e) => {
+  if (miniDragging) {
+    miniMapScrollTo(e);
+    return;
+  }
+  if (isDragging) {
+    const rect = canvas.getBoundingClientRect();
+    const dx = (dragStartX - e.clientX) * (canvasW / rect.width);
+    const dy = (dragStartY - e.clientY) * (canvasH / rect.height);
+    if (Math.abs(dx) > 2 || Math.abs(dy) > 2) dragMoved = true;
+    scrollX = dragScrollX + dx;
+    scrollY = dragScrollY + dy;
+    refreshView();
+    return;
+  }
+  // Canvas領域内のみホバー処理（Canvas外は mouseleave で処理）
+  const rect = canvas.getBoundingClientRect();
+  const inCanvas = e.clientX >= rect.left && e.clientX <= rect.right
+                && e.clientY >= rect.top && e.clientY <= rect.bottom;
+  if (inCanvas) {
+    const { col, row } = canvasToMap(e.clientX, e.clientY);
+    hoverCol = (col >= 0 && col < MAP_COLS && row >= 0 && row < MAP_ROWS) ? col : -1;
+    hoverRow = (hoverCol >= 0) ? row : -1;
+    updateTerrainOverlay(hoverCol, hoverRow);
+    drawMap();
+    updateGameState();
+  }
+});
+
+// --- タイル選択（クリック / タップ） ---
+function toggleSelection(col, row) {
+  if (col < 0 || col >= MAP_COLS || row < 0 || row >= MAP_ROWS) return;
+  if (selectedCol === col && selectedRow === row) {
+    selectedCol = -1; selectedRow = -1;
+  } else {
+    selectedCol = col; selectedRow = row;
+  }
+  blinkVisible = true;
+  drawMap();
+  updateGameState();
+}
+
+window.addEventListener('mouseup', (e) => {
+  if (isDragging && !dragMoved) {
+    const { col, row } = canvasToMap(e.clientX, e.clientY);
+    toggleSelection(col, row);
+  }
+  isDragging = false;
+  miniDragging = false;
+});
+
+canvas.addEventListener('mouseleave', () => {
+  hoverCol = -1; hoverRow = -1;
+  updateTerrainOverlay(-1, -1);
+  drawMap();
+  updateGameState();
+});
+
+// --- タッチ操作 ---
+let touchMode = 'none';
+let touchStartX, touchStartY, touchScrollX, touchScrollY;
+let touchMoved = false;
+let pinchStartDist, pinchStartScale;
+
+function getTouchDist(touches) {
+  const dx = touches[0].clientX - touches[1].clientX;
+  const dy = touches[0].clientY - touches[1].clientY;
+  return Math.sqrt(dx * dx + dy * dy);
+}
+
+canvas.addEventListener('touchstart', (e) => {
+  e.preventDefault();
+  if (e.touches.length === 2) {
+    touchMode = 'pinch';
+    pinchStartDist = getTouchDist(e.touches);
+    pinchStartScale = scale;
+    touchScrollX = scrollX;
+    touchScrollY = scrollY;
+  } else if (e.touches.length === 1) {
+    touchMode = 'drag';
+    touchMoved = false;
+    touchStartX = e.touches[0].clientX;
+    touchStartY = e.touches[0].clientY;
+    touchScrollX = scrollX;
+    touchScrollY = scrollY;
+  }
+}, { passive: false });
+
+canvas.addEventListener('touchmove', (e) => {
+  e.preventDefault();
+  if (touchMode === 'pinch' && e.touches.length === 2) {
+    const dist = getTouchDist(e.touches);
+    const midX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+    const midY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+    zoomAt(midX, midY, pinchStartScale * (dist / pinchStartDist));
+  } else if (touchMode === 'drag' && e.touches.length === 1) {
+    const rect = canvas.getBoundingClientRect();
+    const dx = (touchStartX - e.touches[0].clientX) * (canvasW / rect.width);
+    const dy = (touchStartY - e.touches[0].clientY) * (canvasH / rect.height);
+    if (Math.abs(dx) > 3 || Math.abs(dy) > 3) touchMoved = true;
+    scrollX = touchScrollX + dx;
+    scrollY = touchScrollY + dy;
+    refreshView();
+  }
+}, { passive: false });
+
+canvas.addEventListener('touchend', (e) => {
+  e.preventDefault();
+  if (touchMode === 'drag' && !touchMoved) {
+    const { col, row } = canvasToMap(touchStartX, touchStartY);
+    toggleSelection(col, row);
+  }
+  if (e.touches.length === 0) {
+    touchMode = 'none';
+  } else if (e.touches.length === 1) {
+    touchMode = 'drag';
+    touchMoved = false;
+    touchStartX = e.touches[0].clientX;
+    touchStartY = e.touches[0].clientY;
+    touchScrollX = scrollX;
+    touchScrollY = scrollY;
+  }
+}, { passive: false });
+
+// --- 選択カーソル点滅 ---
+setInterval(() => {
+  if (selectedCol >= 0 && selectedRow >= 0) {
+    blinkVisible = !blinkVisible;
+    drawMap();
+  }
+}, 500);
+
+// --- 初期化 ---
+window.addEventListener('resize', resizeCanvas);
+loadTileImages(() => {
+  resizeCanvas();
+  updateGameState();
+});
+setTimeout(() => {
+  resizeCanvas();
+  updateGameState();
+}, 50);
+</script>
+</body>
+</html>

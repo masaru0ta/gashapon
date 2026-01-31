@@ -264,6 +264,68 @@ const MAP_DATA = number[][];
 | MAX_SCALE | 4 | 最大ズーム倍率 |
 | SCROLL_SPEED | 32 | キーボードスクロール速度（px/回） |
 
+### 3.4 テスト用インターフェース
+
+#### 3.4.1 実装ファイルパス
+
+- `src/index.html` — マップ表示のメインページ
+
+#### 3.4.2 data-testid 属性
+
+テストコードからDOM要素を特定するため、以下の `data-testid` 属性を実装時に付与すること。
+
+| data-testid | 対象要素 |
+|---|---|
+| `game-container` | ゲーム全体のコンテナ |
+| `map-area` | マップエリア |
+| `map-canvas` | メインマップCanvas |
+| `terrain-overlay` | 地形情報オーバーレイ |
+| `coord-text` | 座標テキスト |
+| `terrain-name` | 地形名テキスト |
+| `status-bar` | ステータスバー |
+| `p1-info` | P1プレイヤー情報エリア |
+| `p2-info` | P2プレイヤー情報エリア |
+| `p1-ig` | P1 IG値 |
+| `p1-ct` | P1 CT値 |
+| `p1-gp` | P1 GP数 |
+| `p1-gb` | P1 GB数 |
+| `p1-production` | P1 生産中数 |
+| `p1-unit-count` | P1 ユニット総数 |
+| `p2-ig` | P2 IG値 |
+| `p2-ct` | P2 CT値 |
+| `p2-gp` | P2 GP数 |
+| `p2-gb` | P2 GB数 |
+| `p2-production` | P2 生産中数 |
+| `p2-unit-count` | P2 ユニット総数 |
+| `turn-number` | ターン番号 |
+| `turn-phase` | フェーズ表示 |
+| `mini-map-canvas` | ミニマップCanvas |
+
+#### 3.4.3 グローバル状態オブジェクト（window.gameState）
+
+テストコードから内部状態を読み取るため、`window.gameState` を公開すること。
+
+```javascript
+window.gameState = {
+  scale: number,       // 現在のズーム倍率
+  scrollX: number,     // 水平スクロール位置（px）
+  scrollY: number,     // 垂直スクロール位置（px）
+  selectedCol: number, // 選択中タイル列（-1で未選択）
+  selectedRow: number, // 選択中タイル行（-1で未選択）
+  hoverCol: number,    // ホバー中タイル列（-1で無効）
+  hoverRow: number,    // ホバー中タイル行（-1で無効）
+  MAP_COLS: number,    // マップ列数
+  MAP_ROWS: number,    // マップ行数
+  TILE_SIZE: number,   // タイル基本サイズ
+  MIN_SCALE: number,   // 最小ズーム倍率
+  MAX_SCALE: number,   // 最大ズーム倍率
+  SCROLL_SPEED: number // キーボードスクロール速度
+};
+```
+
+- `gameState` は描画更新のたびに最新の値を反映すること
+- 読み取り専用として公開し、テストコードからの書き込みは想定しない
+
 ## 4. 非機能要件
 
 - **描画性能**: 60fpsを目標とする。視野外タイルの描画スキップにより、大きなマップでも安定した描画速度を維持すること
