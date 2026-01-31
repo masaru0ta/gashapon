@@ -2,219 +2,222 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <title>1-1 マップ表示 モックアップ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body {
-    background: #1a1a2e;
+    background: #000;
     color: #e0e0e0;
-    font-family: 'Courier New', monospace;
+    font-family: 'DotGothic16', 'Courier New', monospace;
     display: flex;
     flex-direction: column;
     align-items: center;
-    min-height: 100vh;
-    padding: 16px;
+    height: 100vh;
+    overflow: hidden;
   }
-  h1 {
-    font-size: 16px;
-    margin-bottom: 8px;
-    color: #aaa;
-  }
-  .main-container {
+
+  .game-container {
     display: flex;
-    gap: 16px;
-    align-items: flex-start;
-    max-width: 100%;
+    flex-direction: column;
+    width: 100%;
+    max-width: 600px;
+    height: 100vh;
   }
+
+  /* --- マップエリア --- */
   .map-area {
-    border: 2px solid #444;
+    flex: 1;
     background: #000;
     position: relative;
-    max-width: 100%;
     overflow: hidden;
+    border-bottom: 2px solid #444;
   }
   #mapCanvas {
     display: block;
     image-rendering: pixelated;
     cursor: grab;
-    max-width: 100%;
-    height: auto;
+    width: 100%;
+    height: 100%;
     touch-action: none;
   }
-  #mapCanvas:active {
-    cursor: grabbing;
-  }
-  .scroll-hint {
+  #mapCanvas:active { cursor: grabbing; }
+
+  /* --- 地形情報オーバーレイ --- */
+  .terrain-overlay {
+    position: absolute;
+    bottom: 4px;
+    left: 4px;
+    background: rgba(0, 0, 0, 0.7);
+    padding: 2px 6px;
+    border-radius: 2px;
     font-size: 10px;
-    color: #666;
-    text-align: center;
-    margin-top: 4px;
+    color: #ccc;
+    pointer-events: none;
+    display: none;
   }
-  .zoom-info {
-    font-size: 10px;
-    color: #888;
-    text-align: center;
-    margin-top: 2px;
+  .terrain-overlay.visible { display: block; }
+
+  /* --- 下部ステータスバー --- */
+  .status-bar {
+    height: 180px;
+    background: #1a1a2e;
+    display: flex;
+    align-items: stretch;
+    border-top: 2px solid #555;
+    flex-shrink: 0;
+    overflow: hidden;
   }
-  .side-panel {
-    width: 220px;
+
+  .player-info {
+    flex: 1;
+    padding: 8px 16px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 2px;
+    min-width: 0;
+  }
+  .player-info.left { text-align: left; }
+  .player-info.right { text-align: right; }
+
+  .resource-line {
+    font-size: 18px;
+    line-height: 1.2;
+    white-space: nowrap;
+    color: #44cc44;
+  }
+  .stat-line {
+    font-size: 16px;
+    line-height: 1.2;
+    display: flex;
+    gap: 8px;
+  }
+  .player-info.right .stat-line { justify-content: flex-end; }
+  .stat-item { white-space: nowrap; }
+  .stat-item .icon-gp { color: #4488ff; }
+  .stat-item .icon-gb { color: #ff4488; }
+  .stat-item .icon-t { color: #44cc44; }
+
+  .unit-count {
+    font-size: 42px;
+    font-weight: bold;
+    line-height: 1;
+  }
+  .player-info.left .unit-count { color: #4488ff; }
+  .player-info.right .unit-count { color: #ff4488; }
+
+  /* 中央: ミニマップ + ターン */
+  .center-panel {
+    width: 280px;
     flex-shrink: 0;
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
   }
-  @media (max-width: 600px) {
-    .main-container {
-      flex-direction: column;
-      align-items: stretch;
-    }
-    .side-panel {
-      width: 100%;
-    }
-  }
-  .panel-box {
-    border: 1px solid #555;
-    background: #16213e;
-    padding: 8px;
-    border-radius: 4px;
-  }
-  .panel-box h2 {
-    font-size: 12px;
-    color: #8899aa;
-    margin-bottom: 6px;
-    border-bottom: 1px solid #333;
-    padding-bottom: 4px;
-  }
-  .terrain-info {
-    font-size: 14px;
-  }
-  .terrain-info .name { color: #fff; font-weight: bold; }
-  .terrain-info .coord { color: #88aacc; font-size: 12px; }
-  .terrain-info .detail { color: #aaa; font-size: 11px; margin-top: 4px; }
-  .legend-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 2px;
-  }
-  .legend-item {
+  .turn-display {
     display: flex;
     align-items: center;
-    gap: 4px;
-    font-size: 10px;
-    padding: 2px;
-    cursor: pointer;
+    gap: 12px;
+  }
+  .turn-number {
+    font-size: 28px;
+    font-weight: bold;
+    color: #44cc44;
+    background: #224422;
+    padding: 0 4px;
     border-radius: 2px;
   }
-  .legend-item:hover { background: #2a3a5e; }
-  .legend-item img {
-    width: 16px;
-    height: 16px;
+  .turn-phase {
+    font-size: 24px;
+    color: #cc8844;
+  }
+  #miniMapCanvas {
+    border: 1px solid #888;
+    background: #222;
     image-rendering: pixelated;
-  }
-  .map-selector {
-    font-size: 12px;
-  }
-  .map-selector select {
-    width: 100%;
-    padding: 4px;
-    background: #0f3460;
-    color: #e0e0e0;
-    border: 1px solid #555;
-    border-radius: 2px;
-    margin-top: 4px;
-  }
-  .grid-overlay-toggle {
-    font-size: 11px;
-    margin-top: 4px;
-  }
-  .grid-overlay-toggle label { cursor: pointer; }
-  .note {
-    margin-top: 12px;
-    font-size: 11px;
-    color: #666;
-    max-width: 700px;
-    text-align: center;
   }
 </style>
 </head>
 <body>
 
-<h1>1-1 マップ表示 モックアップ</h1>
-
-<div class="main-container">
-  <!-- マップ描画エリア -->
+<div class="game-container">
   <div class="map-area">
     <canvas id="mapCanvas"></canvas>
-    <div class="scroll-hint" id="scrollHint">ドラッグ / 矢印キー / スワイプでスクロール</div>
-    <div class="zoom-info" id="zoomInfo">ホイール / ピンチでズーム</div>
+    <div class="terrain-overlay" id="terrainOverlay">
+      <span id="coordText">(0,0)</span> | <span id="terrainName">-</span>
+    </div>
   </div>
 
-  <!-- サイドパネル -->
-  <div class="side-panel">
-
-    <!-- マップ選択 -->
-    <div class="panel-box map-selector">
-      <h2>マップ選択</h2>
-      <select id="mapSelect"></select>
-      <div id="mapSize" style="margin-top:4px; color:#888; font-size:11px;"></div>
-    </div>
-
-    <!-- カーソル位置の地形情報 -->
-    <div class="panel-box terrain-info" id="terrainInfo">
-      <h2>地形情報</h2>
-      <div class="coord" id="coordText">座標: -</div>
-      <div class="name" id="terrainName">-</div>
-      <div class="detail" id="terrainDetail">マップ上にカーソルを合わせてください</div>
-    </div>
-
-    <!-- グリッド表示切替 -->
-    <div class="panel-box">
-      <div class="grid-overlay-toggle">
-        <label><input type="checkbox" id="gridToggle" checked> グリッド線を表示</label>
+  <div class="status-bar">
+    <div class="player-info left">
+      <div class="resource-line">IG......550</div>
+      <div class="resource-line">CT....14300</div>
+      <div class="stat-line">
+        <span class="stat-item"><span class="icon-gp">GP</span>3</span>
+        <span class="stat-item"><span class="icon-t">T</span>0</span>
       </div>
+      <div class="stat-line">
+        <span class="stat-item"><span class="icon-gb">GB</span>2</span>
+      </div>
+      <div class="unit-count">21</div>
     </div>
 
-    <!-- 地形凡例 -->
-    <div class="panel-box">
-      <h2>地形一覧 (18種)</h2>
-      <div class="legend-grid" id="legendGrid"></div>
+    <div class="center-panel">
+      <div class="turn-display">
+        <span class="turn-number">12</span>
+        <span class="turn-phase">5T</span>
+      </div>
+      <canvas id="miniMapCanvas" width="200" height="120"></canvas>
+    </div>
+
+    <div class="player-info right">
+      <div class="resource-line">IG......1350</div>
+      <div class="resource-line">CT......2750</div>
+      <div class="stat-line">
+        <span class="stat-item"><span class="icon-gp">GP</span>3</span>
+        <span class="stat-item"><span class="icon-t">T</span>0</span>
+      </div>
+      <div class="stat-line">
+        <span class="stat-item"><span class="icon-gb">GB</span>1</span>
+      </div>
+      <div class="unit-count">09</div>
     </div>
   </div>
-</div>
-
-<div class="note">
-  ※ このモックアップは仕様書 1-1「マップ表示」の画面イメージです。<br>
-  実際の実装では Canvas (HTML5) を使用してマップを描画します。<br>
-  マップデータはサンプルです。実際のマップデータは別途定義します。
 </div>
 
 <script>
 // --- 地形定義 (18種) ---
 const TERRAINS = [
-  { id: 1,  name: '宇宙',         file: 'space.gif',      color: '#000000', passable: true },
-  { id: 2,  name: '平野',         file: 'plainicon.gif',  color: '#00aa00', passable: true },
-  { id: 3,  name: '森林',         file: 'foresticon.gif', color: '#006600', passable: true },
-  { id: 4,  name: 'アステロイド', file: 'aste.gif',       color: '#666666', passable: true },
-  { id: 5,  name: '水中',         file: 'seaicon.gif',    color: '#0044cc', passable: true },
-  { id: 6,  name: '砂漠',         file: 'deserticon.gif', color: '#ccaa00', passable: true },
-  { id: 7,  name: '大気圏',       file: 'air.gif',        color: '#884400', passable: true },
-  { id: 8,  name: '火山',         file: 'volicon.gif',    color: '#cc4400', passable: false },
-  { id: 9,  name: '小惑星',       file: 'moon.gif',       color: '#999999', passable: true },
-  { id: 10, name: 'クレータ',     file: 'cresmall.gif',   color: '#aaaaaa', passable: true },
-  { id: 11, name: 'ブラックホール', file: 'bhole.gif',    color: '#220022', passable: false },
-  { id: 12, name: '大クレータ',   file: 'crelarge.gif',   color: '#bbbbbb', passable: true },
-  { id: 13, name: 'GP',           file: 'redgpicon.gif',  color: '#cc0000', passable: true },
-  { id: 14, name: 'GB',           file: 'redgb.gif',      color: '#0000cc', passable: true },
-  { id: 15, name: '都市',         file: 'cityicon.gif',   color: '#888888', passable: true },
-  { id: 16, name: 'コロニー',     file: 'colony.gif',     color: '#44aa88', passable: true },
-  { id: 17, name: '補給基地',     file: 'baseicon.gif',   color: '#aa8844', passable: true },
-  { id: 18, name: 'スペースベース', file: 'sbase.gif',    color: '#4488aa', passable: true },
+  { id: 1,  name: '宇宙',           file: 'space.gif',      color: '#000000' },
+  { id: 2,  name: '平野',           file: 'plainicon.gif',  color: '#00aa00' },
+  { id: 3,  name: '森林',           file: 'foresticon.gif', color: '#006600' },
+  { id: 4,  name: 'アステロイド',   file: 'aste.gif',       color: '#666666' },
+  { id: 5,  name: '水中',           file: 'seaicon.gif',    color: '#0044cc' },
+  { id: 6,  name: '砂漠',           file: 'deserticon.gif', color: '#ccaa00' },
+  { id: 7,  name: '大気圏',         file: 'air.gif',        color: '#884400' },
+  { id: 8,  name: '火山',           file: 'volicon.gif',    color: '#cc4400' },
+  { id: 9,  name: '小惑星',         file: 'moon.gif',       color: '#999999' },
+  { id: 10, name: 'クレータ',       file: 'cresmall.gif',   color: '#aaaaaa' },
+  { id: 11, name: 'ブラックホール', file: 'bhole.gif',      color: '#220022' },
+  { id: 12, name: '大クレータ',     file: 'crelarge.gif',   color: '#bbbbbb' },
+  { id: 13, name: 'GP',             file: 'redgpicon.gif',  color: '#cc0000' },
+  { id: 14, name: 'GB',             file: 'redgb.gif',      color: '#0000cc' },
+  { id: 15, name: '都市',           file: 'cityicon.gif',   color: '#888888' },
+  { id: 16, name: 'コロニー',       file: 'colony.gif',     color: '#44aa88' },
+  { id: 17, name: '補給基地',       file: 'baseicon.gif',   color: '#aa8844' },
+  { id: 18, name: 'スペースベース', file: 'sbase.gif',      color: '#4488aa' },
 ];
 
+// id → 地形オブジェクトの高速参照用Map
+const TERRAIN_MAP = new Map(TERRAINS.map(t => [t.id, t]));
+
 const TILE_SIZE = 16;
-const CANVAS_W = 512;
-const CANVAS_H = 512;
 const MIN_SCALE = 1;
 const MAX_SCALE = 4;
 
@@ -251,38 +254,40 @@ const MAP_COLS = SAMPLE_MAP[0].length;
 const MAP_ROWS = SAMPLE_MAP.length;
 
 // --- 状態 ---
-let scale = 2;          // ズーム倍率
-let scrollX = 0;        // ピクセル単位スクロール
+let scale = 2;
+let scrollX = 0;
 let scrollY = 0;
-let hoverCol = -1;      // ホバー中のタイル
+let hoverCol = -1;
 let hoverRow = -1;
-let selectedCol = -1;   // 選択中のタイル
+let selectedCol = -1;
 let selectedRow = -1;
+let blinkVisible = true;
+let canvasW = 512;
+let canvasH = 400;
 
 function ts() { return TILE_SIZE * scale; }
-function maxScrollX() { return Math.max(0, MAP_COLS * ts() - CANVAS_W); }
-function maxScrollY() { return Math.max(0, MAP_ROWS * ts() - CANVAS_H); }
+function maxScrollX() { return Math.max(0, MAP_COLS * ts() - canvasW); }
+function maxScrollY() { return Math.max(0, MAP_ROWS * ts() - canvasH); }
 
 function clampScroll() {
   scrollX = Math.max(0, Math.min(maxScrollX(), scrollX));
   scrollY = Math.max(0, Math.min(maxScrollY(), scrollY));
 }
 
-// --- Canvas座標 → マップタイル座標 ---
 function canvasToMap(clientX, clientY) {
   const rect = canvas.getBoundingClientRect();
-  const cx = (clientX - rect.left) * (CANVAS_W / rect.width);
-  const cy = (clientY - rect.top) * (CANVAS_H / rect.height);
-  const col = Math.floor((cx + scrollX) / ts());
-  const row = Math.floor((cy + scrollY) / ts());
-  return { col, row };
+  const cx = (clientX - rect.left) * (canvasW / rect.width);
+  const cy = (clientY - rect.top) * (canvasH / rect.height);
+  return {
+    col: Math.floor((cx + scrollX) / ts()),
+    row: Math.floor((cy + scrollY) / ts()),
+  };
 }
 
-// --- 指定点を中心にズーム ---
 function zoomAt(clientX, clientY, newScale) {
   const rect = canvas.getBoundingClientRect();
-  const cx = (clientX - rect.left) * (CANVAS_W / rect.width);
-  const cy = (clientY - rect.top) * (CANVAS_H / rect.height);
+  const cx = (clientX - rect.left) * (canvasW / rect.width);
+  const cy = (clientY - rect.top) * (canvasH / rect.height);
   const mapX = (cx + scrollX) / ts();
   const mapY = (cy + scrollY) / ts();
   scale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, newScale));
@@ -290,9 +295,10 @@ function zoomAt(clientX, clientY, newScale) {
   scrollY = mapY * ts() - cy;
   clampScroll();
   drawMap();
+  drawMiniMap();
 }
 
-// --- 画像の読み込み ---
+// --- タイル画像読み込み ---
 const tileImages = {};
 let loadedCount = 0;
 
@@ -300,70 +306,68 @@ function loadTileImages(callback) {
   const basePath = '../../assets/terrain/';
   TERRAINS.forEach(t => {
     const img = new Image();
-    img.onload = () => {
-      loadedCount++;
-      if (loadedCount === TERRAINS.length) callback();
-    };
-    img.onerror = () => {
-      tileImages[t.id] = null;
-      loadedCount++;
-      if (loadedCount === TERRAINS.length) callback();
+    img.onload = img.onerror = () => {
+      if (!img.naturalWidth) tileImages[t.id] = null;
+      if (++loadedCount === TERRAINS.length) callback();
     };
     img.src = basePath + t.file;
     tileImages[t.id] = img;
   });
 }
 
-// --- 描画処理 ---
+// --- メインCanvas ---
 const canvas = document.getElementById('mapCanvas');
 const ctx = canvas.getContext('2d');
-canvas.width = CANVAS_W;
-canvas.height = CANVAS_H;
 
+function resizeCanvas() {
+  const mapArea = document.querySelector('.map-area');
+  canvasW = mapArea.clientWidth;
+  canvasH = mapArea.clientHeight;
+  canvas.width = canvasW;
+  canvas.height = canvasH;
+  clampScroll();
+  drawMap();
+  drawMiniMap();
+}
+
+// --- マップ描画 ---
 function drawMap() {
   const t = ts();
   ctx.imageSmoothingEnabled = false;
-  ctx.clearRect(0, 0, CANVAS_W, CANVAS_H);
+  ctx.clearRect(0, 0, canvasW, canvasH);
 
-  // 表示範囲のタイルを計算
   const startCol = Math.max(0, Math.floor(scrollX / t));
   const startRow = Math.max(0, Math.floor(scrollY / t));
-  const endCol = Math.min(MAP_COLS - 1, Math.floor((scrollX + CANVAS_W) / t));
-  const endRow = Math.min(MAP_ROWS - 1, Math.floor((scrollY + CANVAS_H) / t));
+  const endCol = Math.min(MAP_COLS - 1, Math.floor((scrollX + canvasW) / t));
+  const endRow = Math.min(MAP_ROWS - 1, Math.floor((scrollY + canvasH) / t));
 
+  // タイル描画
   for (let row = startRow; row <= endRow; row++) {
     for (let col = startCol; col <= endCol; col++) {
-      const terrainId = SAMPLE_MAP[row][col];
-      const terrain = TERRAINS.find(tr => tr.id === terrainId);
+      const id = SAMPLE_MAP[row][col];
       const x = col * t - scrollX;
       const y = row * t - scrollY;
-
-      const img = tileImages[terrainId];
+      const img = tileImages[id];
       if (img && img.complete && img.naturalWidth > 0) {
         ctx.drawImage(img, x, y, t, t);
       } else {
+        const terrain = TERRAIN_MAP.get(id);
         ctx.fillStyle = terrain ? terrain.color : '#ff00ff';
         ctx.fillRect(x, y, t, t);
       }
     }
   }
 
-  // グリッド
-  if (document.getElementById('gridToggle').checked) {
-    ctx.strokeStyle = 'rgba(255,255,255,0.15)';
-    ctx.lineWidth = 1;
-    const firstCol = Math.floor(scrollX / t);
-    const firstRow = Math.floor(scrollY / t);
-    const lastCol = Math.ceil((scrollX + CANVAS_W) / t);
-    const lastRow = Math.ceil((scrollY + CANVAS_H) / t);
-    for (let c = firstCol; c <= lastCol; c++) {
-      const x = c * t - scrollX + 0.5;
-      ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, CANVAS_H); ctx.stroke();
-    }
-    for (let r = firstRow; r <= lastRow; r++) {
-      const y = r * t - scrollY + 0.5;
-      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(CANVAS_W, y); ctx.stroke();
-    }
+  // グリッド線
+  ctx.strokeStyle = 'rgba(200, 200, 200, 0.2)';
+  ctx.lineWidth = 1;
+  for (let c = Math.floor(scrollX / t); c <= Math.ceil((scrollX + canvasW) / t); c++) {
+    const x = Math.round(c * t - scrollX) + 0.5;
+    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvasH); ctx.stroke();
+  }
+  for (let r = Math.floor(scrollY / t); r <= Math.ceil((scrollY + canvasH) / t); r++) {
+    const y = Math.round(r * t - scrollY) + 0.5;
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvasW, y); ctx.stroke();
   }
 
   // ホバーハイライト
@@ -377,15 +381,13 @@ function drawMap() {
     ctx.strokeRect(hx + 1, hy + 1, t - 2, t - 2);
   }
 
-  // 選択ハイライト
-  if (selectedCol >= 0 && selectedRow >= 0 && selectedCol < MAP_COLS && selectedRow < MAP_ROWS) {
+  // 選択ハイライト（点滅）
+  if (blinkVisible && selectedCol >= 0 && selectedRow >= 0 && selectedCol < MAP_COLS && selectedRow < MAP_ROWS) {
     const sx = selectedCol * t - scrollX;
     const sy = selectedRow * t - scrollY;
-    // 外枠
     ctx.strokeStyle = '#ffcc00';
     ctx.lineWidth = 3;
     ctx.strokeRect(sx + 1, sy + 1, t - 2, t - 2);
-    // 四隅マーカー
     const m = Math.max(4, t * 0.2);
     ctx.fillStyle = '#ffcc00';
     ctx.fillRect(sx, sy, m, m);
@@ -393,15 +395,53 @@ function drawMap() {
     ctx.fillRect(sx, sy + t - m, m, m);
     ctx.fillRect(sx + t - m, sy + t - m, m, m);
   }
-
-  updateInfo();
 }
 
-function updateInfo() {
-  const zoomPct = Math.round(scale * 100 / 2);
-  document.getElementById('scrollHint').textContent =
-    `スクロール: (${Math.round(scrollX)}, ${Math.round(scrollY)})px / 全体: ${MAP_COLS}x${MAP_ROWS}`;
-  document.getElementById('zoomInfo').textContent = `ズーム: ${zoomPct}%`;
+// --- ミニマップ描画 ---
+const miniCanvas = document.getElementById('miniMapCanvas');
+const miniCtx = miniCanvas.getContext('2d');
+
+function drawMiniMap() {
+  const mw = miniCanvas.width;
+  const mh = miniCanvas.height;
+  const tileW = mw / MAP_COLS;
+  const tileH = mh / MAP_ROWS;
+
+  miniCtx.imageSmoothingEnabled = false;
+  miniCtx.clearRect(0, 0, mw, mh);
+
+  for (let row = 0; row < MAP_ROWS; row++) {
+    for (let col = 0; col < MAP_COLS; col++) {
+      const terrain = TERRAIN_MAP.get(SAMPLE_MAP[row][col]);
+      miniCtx.fillStyle = terrain ? terrain.color : '#ff00ff';
+      miniCtx.fillRect(col * tileW, row * tileH, Math.ceil(tileW), Math.ceil(tileH));
+    }
+  }
+
+  const t = ts();
+  const vx = (scrollX / (MAP_COLS * t)) * mw;
+  const vy = (scrollY / (MAP_ROWS * t)) * mh;
+  const vw = (canvasW / (MAP_COLS * t)) * mw;
+  const vh = (canvasH / (MAP_ROWS * t)) * mh;
+  miniCtx.strokeStyle = '#ff8800';
+  miniCtx.lineWidth = 2;
+  miniCtx.strokeRect(vx, vy, Math.min(vw, mw - vx), Math.min(vh, mh - vy));
+}
+
+// --- 地形情報オーバーレイ ---
+const terrainOverlay = document.getElementById('terrainOverlay');
+const coordText = document.getElementById('coordText');
+const terrainNameEl = document.getElementById('terrainName');
+
+function updateTerrainOverlay(col, row) {
+  if (col >= 0 && col < MAP_COLS && row >= 0 && row < MAP_ROWS) {
+    const terrain = TERRAIN_MAP.get(SAMPLE_MAP[row][col]);
+    coordText.textContent = `(${col},${row})`;
+    terrainNameEl.textContent = terrain ? terrain.name : '不明';
+    terrainOverlay.classList.add('visible');
+  } else {
+    terrainOverlay.classList.remove('visible');
+  }
 }
 
 // --- キーボードスクロール ---
@@ -417,22 +457,19 @@ document.addEventListener('keydown', (e) => {
   e.preventDefault();
   clampScroll();
   drawMap();
+  drawMiniMap();
 });
 
 // --- マウスホイールズーム ---
 canvas.addEventListener('wheel', (e) => {
   e.preventDefault();
-  const factor = e.deltaY > 0 ? 0.9 : 1.1;
-  zoomAt(e.clientX, e.clientY, scale * factor);
+  zoomAt(e.clientX, e.clientY, scale * (e.deltaY > 0 ? 0.9 : 1.1));
 }, { passive: false });
 
 // --- マウスドラッグスクロール ---
 let isDragging = false;
 let dragMoved = false;
-let dragStartX = 0;
-let dragStartY = 0;
-let dragScrollX = 0;
-let dragScrollY = 0;
+let dragStartX, dragStartY, dragScrollX, dragScrollY;
 
 canvas.addEventListener('mousedown', (e) => {
   isDragging = true;
@@ -444,70 +481,56 @@ canvas.addEventListener('mousedown', (e) => {
 });
 
 window.addEventListener('mousemove', (e) => {
-  // ホバー処理
   if (!isDragging) {
     const { col, row } = canvasToMap(e.clientX, e.clientY);
-    if (col >= 0 && col < MAP_COLS && row >= 0 && row < MAP_ROWS) {
-      hoverCol = col;
-      hoverRow = row;
-      const terrainId = SAMPLE_MAP[row][col];
-      const terrain = TERRAINS.find(t => t.id === terrainId);
-      document.getElementById('coordText').textContent = `座標: (${col}, ${row})`;
-      document.getElementById('terrainName').textContent = terrain ? terrain.name : '不明';
-      const passText = terrain ? (terrain.passable ? '通行可能' : '進入不可') : '-';
-      document.getElementById('terrainDetail').textContent = `地形ID: ${terrainId} / ${passText}`;
-    }
+    hoverCol = (col >= 0 && col < MAP_COLS && row >= 0 && row < MAP_ROWS) ? col : -1;
+    hoverRow = (hoverCol >= 0) ? row : -1;
+    updateTerrainOverlay(hoverCol, hoverRow);
     drawMap();
     return;
   }
-  // ドラッグ処理（ピクセル単位）
   const rect = canvas.getBoundingClientRect();
-  const ratioX = CANVAS_W / rect.width;
-  const ratioY = CANVAS_H / rect.height;
-  const dx = (dragStartX - e.clientX) * ratioX;
-  const dy = (dragStartY - e.clientY) * ratioY;
+  const dx = (dragStartX - e.clientX) * (canvasW / rect.width);
+  const dy = (dragStartY - e.clientY) * (canvasH / rect.height);
   if (Math.abs(dx) > 2 || Math.abs(dy) > 2) dragMoved = true;
   scrollX = dragScrollX + dx;
   scrollY = dragScrollY + dy;
   clampScroll();
   drawMap();
+  drawMiniMap();
 });
+
+// --- タイル選択（クリック / タップ） ---
+function toggleSelection(col, row) {
+  if (col < 0 || col >= MAP_COLS || row < 0 || row >= MAP_ROWS) return;
+  if (selectedCol === col && selectedRow === row) {
+    selectedCol = -1; selectedRow = -1;
+  } else {
+    selectedCol = col; selectedRow = row;
+  }
+  blinkVisible = true;
+  drawMap();
+}
 
 window.addEventListener('mouseup', (e) => {
   if (isDragging && !dragMoved) {
-    // クリック（ドラッグなし）→ タイル選択
     const { col, row } = canvasToMap(e.clientX, e.clientY);
-    if (col >= 0 && col < MAP_COLS && row >= 0 && row < MAP_ROWS) {
-      if (selectedCol === col && selectedRow === row) {
-        selectedCol = -1; selectedRow = -1; // 再クリックで解除
-      } else {
-        selectedCol = col; selectedRow = row;
-      }
-      drawMap();
-    }
+    toggleSelection(col, row);
   }
   isDragging = false;
 });
 
 canvas.addEventListener('mouseleave', () => {
   hoverCol = -1; hoverRow = -1;
-  document.getElementById('coordText').textContent = '座標: -';
-  document.getElementById('terrainName').textContent = '-';
-  document.getElementById('terrainDetail').textContent = 'マップ上にカーソルを合わせてください';
+  updateTerrainOverlay(-1, -1);
   drawMap();
 });
 
-// --- タッチ操作（スクロール + ピンチズーム + タップ選択） ---
-let touchMode = 'none'; // 'none' | 'drag' | 'pinch'
-let touchStartX = 0;
-let touchStartY = 0;
-let touchScrollX = 0;
-let touchScrollY = 0;
+// --- タッチ操作 ---
+let touchMode = 'none';
+let touchStartX, touchStartY, touchScrollX, touchScrollY;
 let touchMoved = false;
-let pinchStartDist = 0;
-let pinchStartScale = 0;
-let pinchCenterX = 0;
-let pinchCenterY = 0;
+let pinchStartDist, pinchStartScale;
 
 function getTouchDist(touches) {
   const dx = touches[0].clientX - touches[1].clientX;
@@ -521,8 +544,6 @@ canvas.addEventListener('touchstart', (e) => {
     touchMode = 'pinch';
     pinchStartDist = getTouchDist(e.touches);
     pinchStartScale = scale;
-    pinchCenterX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
-    pinchCenterY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
     touchScrollX = scrollX;
     touchScrollY = scrollY;
   } else if (e.touches.length === 1) {
@@ -539,40 +560,31 @@ canvas.addEventListener('touchmove', (e) => {
   e.preventDefault();
   if (touchMode === 'pinch' && e.touches.length === 2) {
     const dist = getTouchDist(e.touches);
-    const newScale = pinchStartScale * (dist / pinchStartDist);
     const midX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
     const midY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
-    zoomAt(midX, midY, newScale);
+    zoomAt(midX, midY, pinchStartScale * (dist / pinchStartDist));
   } else if (touchMode === 'drag' && e.touches.length === 1) {
     const rect = canvas.getBoundingClientRect();
-    const ratioX = CANVAS_W / rect.width;
-    const ratioY = CANVAS_H / rect.height;
-    const dx = (touchStartX - e.touches[0].clientX) * ratioX;
-    const dy = (touchStartY - e.touches[0].clientY) * ratioY;
+    const dx = (touchStartX - e.touches[0].clientX) * (canvasW / rect.width);
+    const dy = (touchStartY - e.touches[0].clientY) * (canvasH / rect.height);
     if (Math.abs(dx) > 3 || Math.abs(dy) > 3) touchMoved = true;
     scrollX = touchScrollX + dx;
     scrollY = touchScrollY + dy;
     clampScroll();
     drawMap();
+    drawMiniMap();
   }
 }, { passive: false });
 
 canvas.addEventListener('touchend', (e) => {
   e.preventDefault();
   if (touchMode === 'drag' && !touchMoved) {
-    // タップ → タイル選択
     const { col, row } = canvasToMap(touchStartX, touchStartY);
-    if (col >= 0 && col < MAP_COLS && row >= 0 && row < MAP_ROWS) {
-      if (selectedCol === col && selectedRow === row) {
-        selectedCol = -1; selectedRow = -1;
-      } else {
-        selectedCol = col; selectedRow = row;
-      }
-      drawMap();
-    }
+    toggleSelection(col, row);
   }
-  if (e.touches.length === 0) touchMode = 'none';
-  else if (e.touches.length === 1) {
+  if (e.touches.length === 0) {
+    touchMode = 'none';
+  } else if (e.touches.length === 1) {
     touchMode = 'drag';
     touchMoved = false;
     touchStartX = e.touches[0].clientX;
@@ -582,38 +594,29 @@ canvas.addEventListener('touchend', (e) => {
   }
 }, { passive: false });
 
-// --- 凡例の生成 ---
-function buildLegend() {
-  const grid = document.getElementById('legendGrid');
-  const basePath = '../../assets/terrain/';
-  TERRAINS.forEach(t => {
-    const item = document.createElement('div');
-    item.className = 'legend-item';
-    item.innerHTML = `<img src="${basePath}${t.file}" alt="${t.name}"><span>${t.name}</span>`;
-    grid.appendChild(item);
-  });
-}
+// --- ミニマップクリックでスクロール ---
+miniCanvas.addEventListener('click', (e) => {
+  const rect = miniCanvas.getBoundingClientRect();
+  const t = ts();
+  scrollX = ((e.clientX - rect.left) / rect.width) * MAP_COLS * t - canvasW / 2;
+  scrollY = ((e.clientY - rect.top) / rect.height) * MAP_ROWS * t - canvasH / 2;
+  clampScroll();
+  drawMap();
+  drawMiniMap();
+});
 
-// --- マップ選択（デモ用） ---
-function buildMapSelector() {
-  const select = document.getElementById('mapSelect');
-  for (let i = 1; i <= 30; i++) {
-    const opt = document.createElement('option');
-    opt.value = i;
-    opt.textContent = `MAP ${String(i).padStart(2, '0')}`;
-    select.appendChild(opt);
+// --- 選択カーソル点滅 ---
+setInterval(() => {
+  if (selectedCol >= 0 && selectedRow >= 0) {
+    blinkVisible = !blinkVisible;
+    drawMap();
   }
-  document.getElementById('mapSize').textContent = `サイズ: ${MAP_COLS} x ${MAP_ROWS}`;
-}
-
-// --- グリッド表示切替 ---
-document.getElementById('gridToggle').addEventListener('change', drawMap);
+}, 500);
 
 // --- 初期化 ---
-buildLegend();
-buildMapSelector();
-loadTileImages(() => { drawMap(); });
-setTimeout(drawMap, 100);
+window.addEventListener('resize', resizeCanvas);
+loadTileImages(() => resizeCanvas());
+setTimeout(resizeCanvas, 50);
 </script>
 </body>
 </html>
