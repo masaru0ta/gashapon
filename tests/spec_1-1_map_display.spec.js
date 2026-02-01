@@ -930,6 +930,67 @@ test.describe('ステータスバー（PC表示維持）', () => {
   });
 });
 
+// -------------------------------------------------------
+// マップ中央配置
+// -------------------------------------------------------
+test.describe('マップ中央配置', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto(PAGE_URL);
+    await page.waitForFunction(() => window.gameState !== undefined);
+  });
+
+  test('マップ全体がCanvas幅より小さい場合、マップが水平方向に中央配置される', async ({ page }) => {
+    // scale=1にするとマップ幅=25*16=400px、Canvas幅は1200px前後なので中央配置される
+    await page.evaluate(() => {
+      const canvas = document.querySelector('[data-testid="map-canvas"]');
+      const rect = canvas.getBoundingClientRect();
+      const cx = rect.left + rect.width / 2;
+      const cy = rect.top + rect.height / 2;
+      // 最小倍率(1)まで縮小
+      for (let i = 0; i < 50; i++) {
+        canvas.dispatchEvent(new WheelEvent('wheel', { deltaY: 100, clientX: cx, clientY: cy }));
+      }
+    });
+    const state = await getGameState(page);
+    // scale=1, マップ幅=25*16=400, Canvas幅は1200前後
+    expect(state.scale).toBe(1);
+    expect(state.mapOffsetX).toBeGreaterThan(0);
+  });
+
+  test('マップ全体がCanvas高さより小さい場合、マップが垂直方向に中央配置される', async ({ page }) => {
+    // scale=1にするとマップ高さ=25*16=400px、Canvas高さは600px前後なので中央配置される
+    await page.evaluate(() => {
+      const canvas = document.querySelector('[data-testid="map-canvas"]');
+      const rect = canvas.getBoundingClientRect();
+      const cx = rect.left + rect.width / 2;
+      const cy = rect.top + rect.height / 2;
+      for (let i = 0; i < 50; i++) {
+        canvas.dispatchEvent(new WheelEvent('wheel', { deltaY: 100, clientX: cx, clientY: cy }));
+      }
+    });
+    const state = await getGameState(page);
+    expect(state.scale).toBe(1);
+    expect(state.mapOffsetY).toBeGreaterThan(0);
+  });
+
+  test('マップがCanvasより大きい場合、オフセットは0で従来通り左上起点で描画される', async ({ page }) => {
+    // scale=4にするとマップ幅=25*16*4=1600px、Canvas幅の1200前後より大きい
+    await page.evaluate(() => {
+      const canvas = document.querySelector('[data-testid="map-canvas"]');
+      const rect = canvas.getBoundingClientRect();
+      const cx = rect.left + rect.width / 2;
+      const cy = rect.top + rect.height / 2;
+      for (let i = 0; i < 50; i++) {
+        canvas.dispatchEvent(new WheelEvent('wheel', { deltaY: -100, clientX: cx, clientY: cy }));
+      }
+    });
+    const state = await getGameState(page);
+    expect(state.scale).toBe(4);
+    expect(state.mapOffsetX).toBe(0);
+    expect(state.mapOffsetY).toBe(0);
+  });
+});
+
 test.describe('画像フォールバック', () => {
   test('画像読み込み失敗時もCanvasが描画される', async ({ page }) => {
     // 画像パスが不正でもフォールバックカラーで描画されることを確認

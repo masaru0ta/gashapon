@@ -325,6 +325,8 @@ let canvasW = 512;
 let canvasH = 400;
 
 function ts() { return TILE_SIZE * scale; }
+function mapOffsetX() { return Math.max(0, (canvasW - MAP_COLS * ts()) / 2); }
+function mapOffsetY() { return Math.max(0, (canvasH - MAP_ROWS * ts()) / 2); }
 function maxScrollX() { return Math.max(0, MAP_COLS * ts() - canvasW); }
 function maxScrollY() { return Math.max(0, MAP_ROWS * ts() - canvasH); }
 
@@ -345,8 +347,8 @@ function canvasToMap(clientX, clientY) {
   const cx = (clientX - rect.left) * (canvasW / rect.width);
   const cy = (clientY - rect.top) * (canvasH / rect.height);
   return {
-    col: Math.floor((cx + scrollX) / ts()),
-    row: Math.floor((cy + scrollY) / ts()),
+    col: Math.floor((cx - mapOffsetX() + scrollX) / ts()),
+    row: Math.floor((cy - mapOffsetY() + scrollY) / ts()),
   };
 }
 
@@ -354,11 +356,11 @@ function zoomAt(clientX, clientY, newScale) {
   const rect = canvas.getBoundingClientRect();
   const cx = (clientX - rect.left) * (canvasW / rect.width);
   const cy = (clientY - rect.top) * (canvasH / rect.height);
-  const mapX = (cx + scrollX) / ts();
-  const mapY = (cy + scrollY) / ts();
+  const mapX = (cx - mapOffsetX() + scrollX) / ts();
+  const mapY = (cy - mapOffsetY() + scrollY) / ts();
   scale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, newScale));
-  scrollX = mapX * ts() - cx;
-  scrollY = mapY * ts() - cy;
+  scrollX = mapX * ts() - cx + mapOffsetX();
+  scrollY = mapY * ts() - cy + mapOffsetY();
   refreshView();
 }
 
@@ -368,6 +370,8 @@ function updateGameState() {
     scale,
     scrollX,
     scrollY,
+    mapOffsetX: mapOffsetX(),
+    mapOffsetY: mapOffsetY(),
     selectedCol,
     selectedRow,
     hoverCol,
@@ -669,6 +673,8 @@ function handleTileClick(col, row) {
 // --- マップ描画 ---
 function drawMap() {
   const t = ts();
+  const ox = mapOffsetX();
+  const oy = mapOffsetY();
   ctx.imageSmoothingEnabled = false;
   ctx.clearRect(0, 0, canvasW, canvasH);
 
@@ -680,8 +686,8 @@ function drawMap() {
   for (let row = startRow; row <= endRow; row++) {
     for (let col = startCol; col <= endCol; col++) {
       const id = SAMPLE_MAP[row][col];
-      const x = col * t - scrollX;
-      const y = row * t - scrollY;
+      const x = col * t - scrollX + ox;
+      const y = row * t - scrollY + oy;
       const img = tileImages[id];
       if (img && img.complete && img.naturalWidth > 0) {
         ctx.drawImage(img, x, y, t, t);
@@ -697,11 +703,11 @@ function drawMap() {
   ctx.strokeStyle = 'rgba(200, 200, 200, 0.2)';
   ctx.lineWidth = 1;
   for (let c = Math.floor(scrollX / t); c <= Math.ceil((scrollX + canvasW) / t); c++) {
-    const x = Math.round(c * t - scrollX) + 0.5;
+    const x = Math.round(c * t - scrollX + ox) + 0.5;
     ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvasH); ctx.stroke();
   }
   for (let r = Math.floor(scrollY / t); r <= Math.ceil((scrollY + canvasH) / t); r++) {
-    const y = Math.round(r * t - scrollY) + 0.5;
+    const y = Math.round(r * t - scrollY + oy) + 0.5;
     ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvasW, y); ctx.stroke();
   }
 
@@ -712,8 +718,8 @@ function drawMap() {
       const c = parseInt(parts[0]);
       const r = parseInt(parts[1]);
       if (c < startCol || c > endCol || r < startRow || r > endRow) continue;
-      const rx = c * t - scrollX;
-      const ry = r * t - scrollY;
+      const rx = c * t - scrollX + ox;
+      const ry = r * t - scrollY + oy;
       const enemyUnit = getUnitAtPos(c, r);
       if (enemyUnit && enemyUnit.player !== currentPlayer) {
         ctx.fillStyle = 'rgba(255, 64, 64, 0.25)';
@@ -742,8 +748,8 @@ function drawMap() {
       drawRow = pos.row;
     }
     if (drawCol < startCol - 1 || drawCol > endCol + 1 || drawRow < startRow - 1 || drawRow > endRow + 1) continue;
-    const ux = drawCol * t - scrollX;
-    const uy = drawRow * t - scrollY;
+    const ux = drawCol * t - scrollX + ox;
+    const uy = drawRow * t - scrollY + oy;
     if (unit.moved) ctx.globalAlpha = 0.4;
     if (unit.spriteImage && unit.spriteImage.complete && unit.spriteImage.naturalWidth > 0) {
       const sw = t * 0.75;
@@ -773,8 +779,8 @@ function drawMap() {
 
   // ホバーハイライト
   if (hoverCol >= 0 && hoverRow >= 0 && hoverCol < MAP_COLS && hoverRow < MAP_ROWS) {
-    const hx = hoverCol * t - scrollX;
-    const hy = hoverRow * t - scrollY;
+    const hx = hoverCol * t - scrollX + ox;
+    const hy = hoverRow * t - scrollY + oy;
     ctx.fillStyle = 'rgba(255, 255, 255, 0.15)';
     ctx.fillRect(hx, hy, t, t);
     ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
@@ -786,8 +792,8 @@ function drawMap() {
   if (blinkVisible && selectedUnitId !== -1) {
     const su = units.find(u => u.id === selectedUnitId);
     if (su) {
-      const sux = su.col * t - scrollX;
-      const suy = su.row * t - scrollY;
+      const sux = su.col * t - scrollX + ox;
+      const suy = su.row * t - scrollY + oy;
       ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
       ctx.fillRect(sux, suy, t, t);
       ctx.strokeStyle = '#ffffff';
@@ -798,8 +804,8 @@ function drawMap() {
 
   // タイル選択ハイライト（黄色点滅）
   if (blinkVisible && selectedCol >= 0 && selectedRow >= 0 && selectedCol < MAP_COLS && selectedRow < MAP_ROWS) {
-    const sx = selectedCol * t - scrollX;
-    const sy = selectedRow * t - scrollY;
+    const sx = selectedCol * t - scrollX + ox;
+    const sy = selectedRow * t - scrollY + oy;
     ctx.strokeStyle = '#ffcc00';
     ctx.lineWidth = 3;
     ctx.strokeRect(sx + 1, sy + 1, t - 2, t - 2);

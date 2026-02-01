@@ -15,8 +15,10 @@ async function clickTile(page, col, row) {
     const canvas = document.querySelector('[data-testid="map-canvas"]');
     const rect = canvas.getBoundingClientRect();
     const t = gs.TILE_SIZE * gs.scale;
-    const cx = (col + 0.5) * t - gs.scrollX;
-    const cy = (row + 0.5) * t - gs.scrollY;
+    const ox = gs.mapOffsetX || 0;
+    const oy = gs.mapOffsetY || 0;
+    const cx = (col + 0.5) * t - gs.scrollX + ox;
+    const cy = (row + 0.5) * t - gs.scrollY + oy;
     return {
       x: rect.left + cx * (rect.width / canvas.width),
       y: rect.top + cy * (rect.height / canvas.height),
@@ -32,8 +34,10 @@ async function hoverTile(page, col, row) {
     const canvas = document.querySelector('[data-testid="map-canvas"]');
     const rect = canvas.getBoundingClientRect();
     const t = gs.TILE_SIZE * gs.scale;
-    const cx = (col + 0.5) * t - gs.scrollX;
-    const cy = (row + 0.5) * t - gs.scrollY;
+    const ox = gs.mapOffsetX || 0;
+    const oy = gs.mapOffsetY || 0;
+    const cx = (col + 0.5) * t - gs.scrollX + ox;
+    const cy = (row + 0.5) * t - gs.scrollY + oy;
     return {
       x: rect.left + cx * (rect.width / canvas.width),
       y: rect.top + cy * (rect.height / canvas.height),
