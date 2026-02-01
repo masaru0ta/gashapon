@@ -139,7 +139,34 @@
   }
   .turn-phase {
     font-size: var(--font-turn-phase, clamp(14px, 3vh, 24px));
-    color: var(--color-turn-phase, #cc8844);
+  }
+  .turn-phase.p1 { color: var(--color-player1-primary, #4488ff); }
+  .turn-phase.p2 { color: var(--color-player2-primary, #ff4488); }
+
+  /* --- ターン終了バー (7-1) --- */
+  .end-turn-bar {
+    flex-shrink: 0;
+    background: var(--color-status-bg, #1a1a2e);
+    padding: var(--end-turn-bar-padding, clamp(2px, 0.5vh, 4px) clamp(8px, 2vw, 16px));
+  }
+  .end-turn-button {
+    background: var(--color-turn-end-bg, #335533);
+    color: var(--color-turn-end-text, #44cc44);
+    border: 1px solid var(--color-turn-end-border, #44cc44);
+    font-family: var(--font-family, 'DotGothic16', 'Courier New', monospace);
+    font-size: var(--font-turn-end, clamp(10px, 2vh, 14px));
+    padding: var(--turn-end-button-padding, clamp(4px, 0.8vh, 8px) clamp(8px, 2vw, 12px));
+    border-radius: var(--turn-end-button-border-radius, 3px);
+    cursor: pointer;
+    width: var(--turn-end-button-width, 100%);
+    text-align: center;
+  }
+  .end-turn-button:hover {
+    background: var(--color-turn-end-hover-bg, #446644);
+  }
+  .end-turn-button:disabled {
+    opacity: var(--turn-end-disabled-opacity, 0.4);
+    cursor: not-allowed;
   }
   #miniMapCanvas {
     border: 1px solid var(--color-minimap-border, #888);
@@ -178,8 +205,8 @@
 
     <div class="center-panel">
       <div class="turn-display">
-        <span class="turn-number" data-testid="turn-number">12</span>
-        <span class="turn-phase" data-testid="turn-phase">5T</span>
+        <span class="turn-number" data-testid="turn-number">1</span>
+        <span class="turn-phase p1" data-testid="turn-phase">P1</span>
       </div>
       <canvas id="miniMapCanvas" data-testid="mini-map-canvas" width="200" height="120"></canvas>
     </div>
@@ -196,6 +223,10 @@
       </div>
       <div class="unit-count" data-testid="p2-unit-count">09</div>
     </div>
+  </div>
+
+  <div class="end-turn-bar" data-testid="end-turn-bar">
+    <button class="end-turn-button" id="end-turn-button" data-testid="end-turn-button"></button>
   </div>
 </div>
 
@@ -254,6 +285,11 @@ let units = [];
 let selectedUnitId = -1;
 let movementRange = {};
 let currentPlayer = 1;
+
+// --- ターン管理状態 (7-1) ---
+let turnNumber = 1;
+let players = {};
+let endTurnButtonLabel = 'ターンおわり';
 
 // --- アニメーション状態 (2-1) ---
 let isAnimating = false;
@@ -346,6 +382,9 @@ function updateGameState() {
     isAnimating,
     animatingUnitId,
     animationPath: animationPath.map(p => ({col: p.col, row: p.row})),
+    // 7-1 ターン管理
+    turnNumber,
+    players,
   };
 }
 
@@ -375,6 +414,14 @@ async function loadConfig() {
     MAP_COLS = SAMPLE_MAP[0].length;
     MAP_ROWS = SAMPLE_MAP.length;
     units = mapData.units.map(u => ({...u, spriteImage: null}));
+
+    // プレイヤーデータ (7-1)
+    if (mapData.players) {
+      players = {};
+      for (const key of Object.keys(mapData.players)) {
+        players[Number(key)] = {...mapData.players[key]};
+      }
+    }
 
     // マップ表示設定
     TILE_SIZE = settingsData.tile.size;
@@ -410,6 +457,11 @@ async function loadConfig() {
     DRAW.unitFallback = themeData.colors.unitFallback;
     DRAW.player1Color = themeData.colors.player1.primary;
     DRAW.player2Color = themeData.colors.player2.primary;
+
+    // ターン終了ボタンラベル (7-1)
+    if (themeData.labels && themeData.labels.endTurnButton) {
+      endTurnButtonLabel = themeData.labels.endTurnButton;
+    }
 
     // CSSカスタムプロパティを適用
     applyTheme(themeData);
@@ -465,6 +517,25 @@ function applyTheme(theme) {
   s.setProperty('--turn-number-padding', theme.layout.turnNumber.padding);
   s.setProperty('--turn-number-border-radius', theme.layout.turnNumber.borderRadius);
   s.setProperty('--minimap-max-height', theme.layout.miniMap.maxHeight);
+  // 7-1 ターン終了ボタン
+  if (theme.colors.turnEnd) {
+    s.setProperty('--color-turn-end-bg', theme.colors.turnEnd.background);
+    s.setProperty('--color-turn-end-text', theme.colors.turnEnd.text);
+    s.setProperty('--color-turn-end-border', theme.colors.turnEnd.border);
+    s.setProperty('--color-turn-end-hover-bg', theme.colors.turnEnd.hoverBackground);
+    s.setProperty('--turn-end-disabled-opacity', String(theme.colors.turnEnd.disabledOpacity));
+  }
+  if (theme.colors.player1) s.setProperty('--color-player1-primary', theme.colors.player1.primary);
+  if (theme.colors.player2) s.setProperty('--color-player2-primary', theme.colors.player2.primary);
+  if (theme.fonts.turnEnd) s.setProperty('--font-turn-end', theme.fonts.turnEnd);
+  if (theme.layout.turnEndButton) {
+    s.setProperty('--turn-end-button-padding', theme.layout.turnEndButton.padding);
+    s.setProperty('--turn-end-button-border-radius', theme.layout.turnEndButton.borderRadius);
+    s.setProperty('--turn-end-button-width', theme.layout.turnEndButton.width);
+  }
+  if (theme.layout.endTurnBar) {
+    s.setProperty('--end-turn-bar-padding', theme.layout.endTurnBar.padding);
+  }
 }
 
 // --- タイル画像読み込み ---
@@ -1149,9 +1220,84 @@ setInterval(() => {
   }
 }, BLINK_INTERVAL);
 
+// --- ターン管理 (7-1) ---
+// コールバックスタブ（将来の仕様で実装）
+function onTurnStart(tn) { /* 6-1 回復, 5-1 生産完了, 1-2 CP収入 */ }
+function onTurnEnd(tn) { /* 7-2 勝利条件 */ }
+function onPhaseStart(pn) { /* プレイヤー固有の開始処理 */ }
+
+// ステータスバー更新
+function updatePlayerInfo(playerNum) {
+  const p = players[playerNum];
+  if (!p) return;
+  const prefix = 'p' + playerNum;
+  const el = (id) => document.querySelector('[data-testid="' + prefix + '-' + id + '"]');
+  const igEl = el('ig');
+  const ctEl = el('ct');
+  const gpEl = el('gp');
+  const gbEl = el('gb');
+  const prodEl = el('production');
+  const ucEl = el('unit-count');
+  if (igEl) igEl.textContent = 'IG......' + p.ig;
+  if (ctEl) ctEl.textContent = 'CT....' + p.ct;
+  if (gpEl) gpEl.innerHTML = '<span class="icon-gp">GP</span>' + p.gp;
+  if (gbEl) gbEl.innerHTML = '<span class="icon-gb">GB</span>' + p.gb;
+  if (prodEl) prodEl.innerHTML = '<span class="icon-t">T</span>' + p.production;
+  if (ucEl) {
+    const count = units.filter(u => u.player === playerNum).length;
+    ucEl.textContent = String(count).padStart(2, '0');
+  }
+}
+
+function updateStatusBar() {
+  const turnNumberEl = document.querySelector('[data-testid="turn-number"]');
+  const turnPhaseEl = document.querySelector('[data-testid="turn-phase"]');
+  if (turnNumberEl) turnNumberEl.textContent = turnNumber;
+  if (turnPhaseEl) {
+    turnPhaseEl.textContent = currentPlayer === 1 ? 'P1' : 'P2';
+    turnPhaseEl.className = 'turn-phase ' + (currentPlayer === 1 ? 'p1' : 'p2');
+  }
+  updatePlayerInfo(1);
+  updatePlayerInfo(2);
+}
+
+// ターン終了処理
+function doEndTurn() {
+  if (isAnimating) return;
+  // ユニット選択中の場合は解除
+  if (selectedUnitId !== -1) deselectUnit();
+  if (selectedCol !== -1) { selectedCol = -1; selectedRow = -1; }
+
+  if (currentPlayer === 1) {
+    currentPlayer = 2;
+    // P2の全ユニットのmovedリセット
+    units.forEach(u => { if (u.player === 2) u.moved = false; });
+    onPhaseStart(2);
+  } else {
+    onTurnEnd(turnNumber);
+    turnNumber++;
+    currentPlayer = 1;
+    // P1の全ユニットのmovedリセット
+    units.forEach(u => { if (u.player === 1) u.moved = false; });
+    onTurnStart(turnNumber);
+    onPhaseStart(1);
+  }
+  updateStatusBar();
+  updateGameState();
+}
+
+// ターン終了ボタンのイベント設定
+const endTurnButtonEl = document.getElementById('end-turn-button');
+if (endTurnButtonEl) {
+  endTurnButtonEl.addEventListener('click', doEndTurn);
+}
+
 // --- グローバルテスト関数 (2-1) ---
 window.resetTurn = function() {
   units.forEach(u => { u.moved = false; });
+  turnNumber = 1;
+  currentPlayer = 1;
+  updateStatusBar();
   refreshView();
 };
 
@@ -1178,6 +1324,18 @@ window.calculateMovementRange = function(unitId) {
   return calculateMovementRangeForUnit(unit);
 };
 
+window.endTurn = function() {
+  doEndTurn();
+};
+
+window.getTurnInfo = function() {
+  return {
+    turnNumber: turnNumber,
+    currentPlayer: currentPlayer,
+    phase: currentPlayer === 1 ? 'P1' : 'P2',
+  };
+};
+
 window._SAMPLE_MAP = null; // loadConfig完了後に設定
 
 window.setAnimationSpeed = function(ms) {
@@ -1201,9 +1359,15 @@ window.getAnimatingUnitDrawPos = function() {
 window.addEventListener('resize', resizeCanvas);
 loadConfig().then(() => {
   window._SAMPLE_MAP = SAMPLE_MAP;
+  // ターン終了ボタンのラベル設定 (7-1)
+  const btnEl = document.getElementById('end-turn-button');
+  if (btnEl) btnEl.textContent = endTurnButtonLabel;
   loadTileImages(() => {
     loadUnitSprites(() => {
       resizeCanvas();
+      updateStatusBar();
+      onTurnStart(1);
+      onPhaseStart(1);
       updateGameState();
     });
   });

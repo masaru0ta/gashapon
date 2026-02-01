@@ -81,6 +81,21 @@ test.describe('初期表示', () => {
     const box = await page.getByTestId('game-container').boundingBox();
     expect(box.width).toBeLessThanOrEqual(1200);
   });
+
+  test('グリッド線は表示されない', async ({ page }) => {
+    // drawMap関数のソースコードにグリッド線描画（rgba(200, 200, 200, 0.2)）が含まれないことを確認
+    const hasGridCode = await page.evaluate(() => {
+      // drawMap関数内にグリッド線の色指定が存在するかチェック
+      const scripts = document.querySelectorAll('script');
+      for (const script of scripts) {
+        if (script.textContent.includes('rgba(200, 200, 200, 0.2)')) {
+          return true;
+        }
+      }
+      return false;
+    });
+    expect(hasGridCode).toBe(false);
+  });
 });
 
 // -------------------------------------------------------

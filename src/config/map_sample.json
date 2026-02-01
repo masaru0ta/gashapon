@@ -35,5 +35,9 @@
     { "id": 6,  "player": 2, "type": "general",    "name": "GUNDAM",  "col": 20, "row": 5,  "mv": 6, "moved": false, "hp": 100 },
     { "id": 7,  "player": 2, "type": "amphibious", "name": "AQUA-GM", "col": 18, "row": 8,  "mv": 4, "moved": false, "hp": 100 },
     { "id": 8,  "player": 2, "type": "ship",       "name": "SALAMIS", "col": 23, "row": 4,  "mv": 5, "moved": false, "hp": 100 }
-  ]
+  ],
+  "players": {
+    "1": { "ig": 550, "ct": 14300, "gp": 3, "gb": 2, "production": 0 },
+    "2": { "ig": 1350, "ct": 2750, "gp": 3, "gb": 1, "production": 0 }
+  }
 }
