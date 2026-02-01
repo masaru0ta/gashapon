@@ -808,6 +808,38 @@ test.describe('ステータスバー', () => {
 });
 
 // -------------------------------------------------------
+// ステータスバー（テキストはみ出し防止）
+// -------------------------------------------------------
+test.describe('ステータスバー（テキストはみ出し防止）', () => {
+  test.use({ viewport: { width: 375, height: 667 } });
+
+  test.beforeEach(async ({ page }) => {
+    await page.goto(PAGE_URL);
+    await page.waitForFunction(() => window.gameState !== undefined);
+  });
+
+  test('幅375pxでP2のIG値テキスト右端に8px以上の余白がある', async ({ page }) => {
+    const right = await page.getByTestId('p2-ig').evaluate(el => {
+      // テキスト実幅をRangeで正確に測定
+      const range = document.createRange();
+      range.selectNodeContents(el);
+      return range.getBoundingClientRect().right;
+    });
+    // 実機のフォントレンダリング差を考慮し8px以上の余白を確保
+    expect(right).toBeLessThanOrEqual(375 - 8);
+  });
+
+  test('幅375pxでP2のCT値テキスト右端に8px以上の余白がある', async ({ page }) => {
+    const right = await page.getByTestId('p2-ct').evaluate(el => {
+      const range = document.createRange();
+      range.selectNodeContents(el);
+      return range.getBoundingClientRect().right;
+    });
+    expect(right).toBeLessThanOrEqual(375 - 8);
+  });
+});
+
+// -------------------------------------------------------
 // 画像フォールバック
 // -------------------------------------------------------
 // -------------------------------------------------------
