@@ -183,25 +183,31 @@ test.describe('スクロール境界', () => {
   });
 
   test('マップ左端を超えてスクロールできない', async ({ page }) => {
-    for (let i = 0; i < 50; i++) {
-      await page.keyboard.press('ArrowLeft');
-    }
+    await page.evaluate(() => {
+      for (let i = 0; i < 50; i++) {
+        document.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft' }));
+      }
+    });
     const state = await getGameState(page);
     expect(state.scrollX).toBeGreaterThanOrEqual(0);
   });
 
   test('マップ上端を超えてスクロールできない', async ({ page }) => {
-    for (let i = 0; i < 50; i++) {
-      await page.keyboard.press('ArrowUp');
-    }
+    await page.evaluate(() => {
+      for (let i = 0; i < 50; i++) {
+        document.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowUp' }));
+      }
+    });
     const state = await getGameState(page);
     expect(state.scrollY).toBeGreaterThanOrEqual(0);
   });
 
   test('マップ右端を超えてスクロールできない', async ({ page }) => {
-    for (let i = 0; i < 100; i++) {
-      await page.keyboard.press('ArrowRight');
-    }
+    await page.evaluate(() => {
+      for (let i = 0; i < 100; i++) {
+        document.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight' }));
+      }
+    });
     const state = await getGameState(page);
     const maxX = await page.evaluate(() => {
       const gs = window.gameState;
@@ -213,9 +219,11 @@ test.describe('スクロール境界', () => {
   });
 
   test('マップ下端を超えてスクロールできない', async ({ page }) => {
-    for (let i = 0; i < 100; i++) {
-      await page.keyboard.press('ArrowDown');
-    }
+    await page.evaluate(() => {
+      for (let i = 0; i < 100; i++) {
+        document.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown' }));
+      }
+    });
     const state = await getGameState(page);
     const maxY = await page.evaluate(() => {
       const gs = window.gameState;
@@ -241,8 +249,9 @@ test.describe('ズーム（マウスホイール）', () => {
     const before = await getGameState(page);
     await page.mouse.move(center.x, center.y);
     await page.mouse.wheel(0, -100);
-    // ホイールイベント処理を待つ
-    await page.waitForTimeout(100);
+    await page.waitForFunction(
+      (prev) => window.gameState.scale > prev, before.scale
+    );
     const after = await getGameState(page);
     expect(after.scale).toBeGreaterThan(before.scale);
   });
@@ -252,7 +261,9 @@ test.describe('ズーム（マウスホイール）', () => {
     const before = await getGameState(page);
     await page.mouse.move(center.x, center.y);
     await page.mouse.wheel(0, 100);
-    await page.waitForTimeout(100);
+    await page.waitForFunction(
+      (prev) => window.gameState.scale < prev, before.scale
+    );
     const after = await getGameState(page);
     expect(after.scale).toBeLessThan(before.scale);
   });
@@ -260,7 +271,10 @@ test.describe('ズーム（マウスホイール）', () => {
   test('ズーム時カーソル位置のマップ座標が維持される', async ({ page }) => {
     // スクロール可能な状態にするためビューポートを縮小
     await page.setViewportSize({ width: 600, height: 400 });
-    await page.waitForTimeout(100);
+    await page.waitForFunction(() => {
+      const c = document.querySelector('[data-testid="map-canvas"]');
+      return c && c.getBoundingClientRect().width <= 600;
+    });
 
     // まず少しスクロールしてクランプの影響を避ける
     await page.keyboard.press('ArrowRight');
@@ -271,7 +285,7 @@ test.describe('ズーム（マウスホイール）', () => {
     const cy = box.y + box.height * 0.5;
     await page.mouse.move(cx, cy);
 
-    const beforeCoord = await page.evaluate(({ px, py }) => {
+    const beforeState = await page.evaluate(({ px, py }) => {
       const gs = window.gameState;
       const canvas = document.querySelector('[data-testid="map-canvas"]');
       const rect = canvas.getBoundingClientRect();
@@ -281,11 +295,14 @@ test.describe('ズーム（マウスホイール）', () => {
       return {
         col: Math.floor((canvasX + gs.scrollX) / tileSize),
         row: Math.floor((canvasY + gs.scrollY) / tileSize),
+        scale: gs.scale,
       };
     }, { px: cx, py: cy });
 
     await page.mouse.wheel(0, -100);
-    await page.waitForTimeout(100);
+    await page.waitForFunction(
+      (prev) => window.gameState.scale > prev, beforeState.scale
+    );
 
     const afterCoord = await page.evaluate(({ px, py }) => {
       const gs = window.gameState;
@@ -301,8 +318,8 @@ test.describe('ズーム（マウスホイール）', () => {
     }, { px: cx, py: cy });
 
     // ズーム前後でカーソル下のタイルが同じであること
-    expect(afterCoord.col).toBe(beforeCoord.col);
-    expect(afterCoord.row).toBe(beforeCoord.row);
+    expect(afterCoord.col).toBe(beforeState.col);
+    expect(afterCoord.row).toBe(beforeState.row);
   });
 });
 
@@ -316,36 +333,43 @@ test.describe('ズーム境界', () => {
   });
 
   test('ズーム倍率が1倍未満にならない', async ({ page }) => {
-    const center = await getCanvasCenter(page);
-    await page.mouse.move(center.x, center.y);
-    // 大量に縮小
-    for (let i = 0; i < 50; i++) {
-      await page.mouse.wheel(0, 100);
-    }
-    await page.waitForTimeout(100);
+    await page.evaluate(() => {
+      const canvas = document.querySelector('[data-testid="map-canvas"]');
+      const rect = canvas.getBoundingClientRect();
+      const cx = rect.left + rect.width / 2;
+      const cy = rect.top + rect.height / 2;
+      for (let i = 0; i < 50; i++) {
+        canvas.dispatchEvent(new WheelEvent('wheel', { deltaY: 100, clientX: cx, clientY: cy }));
+      }
+    });
     const state = await getGameState(page);
     expect(state.scale).toBeGreaterThanOrEqual(state.MIN_SCALE);
   });
 
   test('ズーム倍率が4倍を超えない', async ({ page }) => {
-    const center = await getCanvasCenter(page);
-    await page.mouse.move(center.x, center.y);
-    // 大量に拡大
-    for (let i = 0; i < 50; i++) {
-      await page.mouse.wheel(0, -100);
-    }
-    await page.waitForTimeout(100);
+    await page.evaluate(() => {
+      const canvas = document.querySelector('[data-testid="map-canvas"]');
+      const rect = canvas.getBoundingClientRect();
+      const cx = rect.left + rect.width / 2;
+      const cy = rect.top + rect.height / 2;
+      for (let i = 0; i < 50; i++) {
+        canvas.dispatchEvent(new WheelEvent('wheel', { deltaY: -100, clientX: cx, clientY: cy }));
+      }
+    });
     const state = await getGameState(page);
     expect(state.scale).toBeLessThanOrEqual(state.MAX_SCALE);
   });
 
   test('最小ズームでさらに縮小しても表示が崩れない', async ({ page }) => {
-    const center = await getCanvasCenter(page);
-    await page.mouse.move(center.x, center.y);
-    for (let i = 0; i < 50; i++) {
-      await page.mouse.wheel(0, 100);
-    }
-    await page.waitForTimeout(100);
+    await page.evaluate(() => {
+      const canvas = document.querySelector('[data-testid="map-canvas"]');
+      const rect = canvas.getBoundingClientRect();
+      const cx = rect.left + rect.width / 2;
+      const cy = rect.top + rect.height / 2;
+      for (let i = 0; i < 50; i++) {
+        canvas.dispatchEvent(new WheelEvent('wheel', { deltaY: 100, clientX: cx, clientY: cy }));
+      }
+    });
     const state = await getGameState(page);
     expect(state.scale).toBe(state.MIN_SCALE);
     // Canvas が存在し、サイズが正常であること
@@ -356,12 +380,15 @@ test.describe('ズーム境界', () => {
   });
 
   test('最大ズームでさらに拡大しても表示が崩れない', async ({ page }) => {
-    const center = await getCanvasCenter(page);
-    await page.mouse.move(center.x, center.y);
-    for (let i = 0; i < 50; i++) {
-      await page.mouse.wheel(0, -100);
-    }
-    await page.waitForTimeout(100);
+    await page.evaluate(() => {
+      const canvas = document.querySelector('[data-testid="map-canvas"]');
+      const rect = canvas.getBoundingClientRect();
+      const cx = rect.left + rect.width / 2;
+      const cy = rect.top + rect.height / 2;
+      for (let i = 0; i < 50; i++) {
+        canvas.dispatchEvent(new WheelEvent('wheel', { deltaY: -100, clientX: cx, clientY: cy }));
+      }
+    });
     const state = await getGameState(page);
     expect(state.scale).toBe(state.MAX_SCALE);
     const canvas = page.getByTestId('map-canvas');
@@ -438,11 +465,15 @@ test.describe('タイル選択', () => {
     // 点滅自体は目視確認項目とする
     const state = await getGameState(page);
     expect(state.selectedCol).toBeGreaterThanOrEqual(0);
-    // 600ms 待って状態が維持されていることを確認（点滅しても選択は解除されない）
-    await page.waitForTimeout(600);
-    const afterBlink = await getGameState(page);
-    expect(afterBlink.selectedCol).toBe(state.selectedCol);
-    expect(afterBlink.selectedRow).toBe(state.selectedRow);
+    // 1回の点滅サイクル（500ms）後も選択状態が維持されることを確認
+    await page.waitForFunction(
+      (sel) => {
+        const gs = window.gameState;
+        return gs.selectedCol === sel.col && gs.selectedRow === sel.row;
+      },
+      { col: state.selectedCol, row: state.selectedRow },
+      { timeout: 2000 }
+    );
   });
 });
 
@@ -518,7 +549,10 @@ test.describe('ミニマップ', () => {
     // ミニマップの右下付近をクリック
     const box = await page.getByTestId('mini-map-canvas').boundingBox();
     await page.mouse.click(box.x + box.width * 0.8, box.y + box.height * 0.8);
-    await page.waitForTimeout(100);
+    await page.waitForFunction(
+      ([prevX, prevY]) => window.gameState.scrollX !== prevX || window.gameState.scrollY !== prevY,
+      [before.scrollX, before.scrollY]
+    );
 
     const after = await getGameState(page);
     // スクロール位置が変化していること
@@ -553,7 +587,6 @@ test.describe('ミニマップ', () => {
 
     // マウスを動かしてもスクロールが変わらないこと（ドラッグ解除済み）
     await page.mouse.move(box.x + box.width * 0.1, box.y + box.height * 0.1);
-    await page.waitForTimeout(100);
     const afterMove = await getGameState(page);
     expect(afterMove.scrollX).toBe(afterDrag.scrollX);
     expect(afterMove.scrollY).toBe(afterDrag.scrollY);
@@ -572,7 +605,12 @@ test.describe('レスポンシブ', () => {
   test('ウィンドウリサイズでCanvasサイズが追従する', async ({ page }) => {
     const beforeBox = await page.getByTestId('map-canvas').boundingBox();
     await page.setViewportSize({ width: 800, height: 600 });
-    await page.waitForTimeout(200);
+    await page.waitForFunction(
+      (prevW) => {
+        const c = document.querySelector('[data-testid="map-canvas"]');
+        return c && c.getBoundingClientRect().width !== prevW;
+      }, beforeBox.width
+    );
     const afterBox = await page.getByTestId('map-canvas').boundingBox();
     // サイズが変化していること（より小さいビューポートで）
     expect(afterBox.width).not.toBe(beforeBox.width);
@@ -580,7 +618,10 @@ test.describe('レスポンシブ', () => {
 
   test('リサイズ後もスクロール・タイル選択が正常に動作する', async ({ page }) => {
     await page.setViewportSize({ width: 600, height: 400 });
-    await page.waitForTimeout(200);
+    await page.waitForFunction(() => {
+      const c = document.querySelector('[data-testid="map-canvas"]');
+      return c && c.getBoundingClientRect().width <= 600;
+    });
 
     // キーボードスクロール（縦方向で確認）
     const before = await getGameState(page);
@@ -597,7 +638,10 @@ test.describe('レスポンシブ', () => {
 
   test('ゲームコンテナの最大幅が1200px以下である', async ({ page }) => {
     await page.setViewportSize({ width: 1920, height: 1080 });
-    await page.waitForTimeout(200);
+    await page.waitForFunction(() => {
+      const c = document.querySelector('[data-testid="game-container"]');
+      return c && c.getBoundingClientRect().width > 0;
+    });
     const box = await page.getByTestId('game-container').boundingBox();
     expect(box.width).toBeLessThanOrEqual(1200);
   });

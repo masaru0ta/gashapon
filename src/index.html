@@ -301,7 +301,6 @@ let isAnimating = false;
 let animatingUnitId = -1;
 let animationPath = [];
 let animationStep = 0;
-let animationProgress = 0;
 let animationSpeed = 100;
 let animationTimerId = null;
 let animationResolve = null;
@@ -577,29 +576,23 @@ function findPath(fromCol, fromRow, toCol, toRow, unit) {
   return path;
 }
 
-// --- 移動アニメーション ---
+// --- 移動アニメーション（マス単位離散移動） ---
 function startMoveAnimation(unit, path) {
   if (path.length <= 1 || animationSpeed === 0) return;
   isAnimating = true;
   animatingUnitId = unit.id;
   animationPath = path;
   animationStep = 0;
-  animationProgress = 0;
   updateGameState();
 
-  const startTime = performance.now();
-  const totalDuration = (path.length - 1) * animationSpeed;
-
-  function tick() {
-    const elapsed = performance.now() - startTime;
-    const totalProgress = Math.min(elapsed / totalDuration, 1);
-    const rawStep = totalProgress * (path.length - 1);
-    animationStep = Math.min(Math.floor(rawStep), path.length - 2);
-    animationProgress = rawStep - animationStep;
-    drawMap();
-    updateGameState();
-    if (totalProgress < 1) {
-      animationTimerId = requestAnimationFrame(tick);
+  let stepIndex = 0;
+  function advanceStep() {
+    stepIndex++;
+    if (stepIndex < path.length) {
+      animationStep = stepIndex;
+      drawMap();
+      updateGameState();
+      setTimeout(advanceStep, animationSpeed);
     } else {
       isAnimating = false;
       animatingUnitId = -1;
@@ -614,7 +607,8 @@ function startMoveAnimation(unit, path) {
       }
     }
   }
-  animationTimerId = requestAnimationFrame(tick);
+  drawMap();
+  setTimeout(advanceStep, animationSpeed);
 }
 
 function executeMove(unit, col, row, animate) {
@@ -732,14 +726,13 @@ function drawMap() {
 
   // ユニットスプライト描画 (2-1)
   for (const unit of units) {
-    // アニメーション中は補間位置を使用
+    // アニメーション中はマス単位の離散位置を使用
     let drawCol = unit.col;
     let drawRow = unit.row;
-    if (isAnimating && unit.id === animatingUnitId && animationPath.length > 1) {
-      const from = animationPath[animationStep];
-      const to = animationPath[Math.min(animationStep + 1, animationPath.length - 1)];
-      drawCol = from.col + (to.col - from.col) * animationProgress;
-      drawRow = from.row + (to.row - from.row) * animationProgress;
+    if (isAnimating && unit.id === animatingUnitId && animationPath.length > 0) {
+      const pos = animationPath[animationStep];
+      drawCol = pos.col;
+      drawRow = pos.row;
     }
     if (drawCol < startCol - 1 || drawCol > endCol + 1 || drawRow < startRow - 1 || drawRow > endRow + 1) continue;
     const ux = drawCol * t - scrollX;
@@ -1104,6 +1097,12 @@ window.waitForAnimation = function() {
   return new Promise(function(resolve) {
     animationResolve = resolve;
   });
+};
+
+window.getAnimatingUnitDrawPos = function() {
+  if (!isAnimating || animationPath.length === 0) return null;
+  const pos = animationPath[animationStep];
+  return { col: pos.col, row: pos.row };
 };
 
 // --- 初期化 ---

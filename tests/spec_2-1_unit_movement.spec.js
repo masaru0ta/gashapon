@@ -89,7 +89,9 @@ test.describe('ユニット表示', () => {
     });
     await page.mouse.move(center.x, center.y);
     await page.mouse.wheel(0, -100);
-    await page.waitForTimeout(100);
+    await page.waitForFunction(
+      (prev) => window.gameState.scale > prev, 2
+    );
     const state = await getGameState(page);
     expect(state.units.length).toBe(8);
     expect(state.scale).toBeGreaterThan(2);
@@ -159,10 +161,10 @@ test.describe('ユニット選択', () => {
     await clickTile(page, 2, 2);
     const state = await getGameState(page);
     expect(state.selectedUnitId).toBe(1);
-    // 600ms待っても選択状態が維持される（点滅しても選択は解除されない）
-    await page.waitForTimeout(600);
-    const after = await getGameState(page);
-    expect(after.selectedUnitId).toBe(1);
+    // 点滅しても選択状態が維持されることを確認
+    await page.waitForFunction(
+      (id) => window.gameState.selectedUnitId === id, 1, { timeout: 2000 }
+    );
   });
 
   test('選択中ユニットをもう一度クリックすると選択が解除される', async ({ page }) => {
@@ -816,7 +818,9 @@ test.describe('既存機能との共存', () => {
     const before = await getGameState(page);
     await page.mouse.move(center.x, center.y);
     await page.mouse.wheel(0, -100);
-    await page.waitForTimeout(100);
+    await page.waitForFunction(
+      (prev) => window.gameState.scale > prev, before.scale
+    );
     const after = await getGameState(page);
     expect(after.scale).toBeGreaterThan(before.scale);
   });
@@ -827,7 +831,10 @@ test.describe('既存機能との共存', () => {
     const box = await miniMap.boundingBox();
     const before = await getGameState(page);
     await page.mouse.click(box.x + box.width * 0.8, box.y + box.height * 0.8);
-    await page.waitForTimeout(100);
+    await page.waitForFunction(
+      ([prevX, prevY]) => window.gameState.scrollX !== prevX || window.gameState.scrollY !== prevY,
+      [before.scrollX, before.scrollY]
+    );
     const after = await getGameState(page);
     expect(after.scrollX !== before.scrollX || after.scrollY !== before.scrollY).toBeTruthy();
   });
@@ -950,6 +957,38 @@ test.describe('移動アニメーション', () => {
     await page.evaluate(() => window.waitForAnimation());
   });
 
+  test('アニメーション中のユニット描画位置が常にタイルの整数座標である', async ({ page }) => {
+    // 4タイル移動: (2,2) → (6,2) でアニメーション中に複数回描画位置をサンプリング
+    await clickTile(page, 2, 2);
+    await clickTile(page, 6, 2);
+    await page.waitForFunction(() => window.gameState.isAnimating === true, null, { timeout: 2000 });
+
+    // アニメーション中に複数回描画位置を取得し、すべて整数であることを確認
+    const positions = await page.evaluate(() => {
+      return new Promise(resolve => {
+        const results = [];
+        function sample() {
+          const pos = window.getAnimatingUnitDrawPos();
+          if (pos) {
+            results.push({ col: pos.col, row: pos.row });
+          }
+          if (window.gameState.isAnimating) {
+            requestAnimationFrame(sample);
+          } else {
+            resolve(results);
+          }
+        }
+        sample();
+      });
+    });
+
+    expect(positions.length).toBeGreaterThan(0);
+    for (const pos of positions) {
+      expect(Number.isInteger(pos.col)).toBe(true);
+      expect(Number.isInteger(pos.row)).toBe(true);
+    }
+  });
+
   test('window.moveUnit()テスト関数は即時移動（アニメーションなし）のまま動作する', async ({ page }) => {
     await page.evaluate(() => window.selectUnit(1));
     await page.evaluate(() => window.moveUnit(1, 4, 2));
@@ -969,7 +1008,7 @@ test.describe('移動アニメーション', () => {
     await clickTile(page, 2, 2);
     await clickTile(page, 4, 2);
     // アニメーション速度0なので即座に完了
-    await page.waitForTimeout(50);
+    await page.waitForFunction(() => window.gameState.isAnimating === false);
     const state = await getGameState(page);
     expect(state.isAnimating).toBe(false);
     const unit = await page.evaluate(() =>

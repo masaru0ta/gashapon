@@ -3,6 +3,8 @@ const { defineConfig } = require('@playwright/test');
 
 module.exports = defineConfig({
   testDir: './tests',
+  fullyParallel: true,
+  reporter: process.env.CI ? 'list' : 'dot',
   timeout: 30000,
   use: {
     baseURL: 'http://localhost:3000',
