@@ -148,6 +148,7 @@
     cursor: pointer;
     max-width: 100%;
     max-height: clamp(60px, 15vh, 120px);
+    touch-action: none;
   }
 </style>
 </head>
@@ -908,11 +909,11 @@ let dragMoved = false;
 let dragStartX, dragStartY, dragScrollX, dragScrollY;
 let miniDragging = false;
 
-function miniMapScrollTo(e) {
+function miniMapScrollToXY(clientX, clientY) {
   const rect = miniCanvas.getBoundingClientRect();
   const t = ts();
-  scrollX = ((e.clientX - rect.left) / rect.width) * MAP_COLS * t - canvasW / 2;
-  scrollY = ((e.clientY - rect.top) / rect.height) * MAP_ROWS * t - canvasH / 2;
+  scrollX = ((clientX - rect.left) / rect.width) * MAP_COLS * t - canvasW / 2;
+  scrollY = ((clientY - rect.top) / rect.height) * MAP_ROWS * t - canvasH / 2;
   refreshView();
 }
 
@@ -928,12 +929,31 @@ canvas.addEventListener('mousedown', (e) => {
 miniCanvas.addEventListener('mousedown', (e) => {
   e.preventDefault();
   miniDragging = true;
-  miniMapScrollTo(e);
+  miniMapScrollToXY(e.clientX, e.clientY);
 });
+
+// --- ミニマップ タッチ操作 ---
+miniCanvas.addEventListener('touchstart', (e) => {
+  e.preventDefault();
+  miniDragging = true;
+  miniMapScrollToXY(e.touches[0].clientX, e.touches[0].clientY);
+}, { passive: false });
+
+miniCanvas.addEventListener('touchmove', (e) => {
+  e.preventDefault();
+  if (miniDragging) {
+    miniMapScrollToXY(e.touches[0].clientX, e.touches[0].clientY);
+  }
+}, { passive: false });
+
+miniCanvas.addEventListener('touchend', (e) => {
+  e.preventDefault();
+  miniDragging = false;
+}, { passive: false });
 
 window.addEventListener('mousemove', (e) => {
   if (miniDragging) {
-    miniMapScrollTo(e);
+    miniMapScrollToXY(e.clientX, e.clientY);
     return;
   }
   if (isDragging) {

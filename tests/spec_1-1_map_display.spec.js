@@ -594,6 +594,92 @@ test.describe('ミニマップ', () => {
 });
 
 // -------------------------------------------------------
+// ミニマップ（タッチ操作）
+// -------------------------------------------------------
+test.describe('ミニマップ（タッチ操作）', () => {
+  test.use({ hasTouch: true });
+
+  test.beforeEach(async ({ page }) => {
+    await page.goto(PAGE_URL);
+    await page.waitForFunction(() => window.gameState !== undefined);
+  });
+
+  test('ミニマップをタッチするとタップ位置を中心にメインマップがスクロールする', async ({ page }) => {
+    const before = await getGameState(page);
+    const box = await page.getByTestId('mini-map-canvas').boundingBox();
+
+    // ミニマップの右下付近をタップ
+    const tapX = box.x + box.width * 0.8;
+    const tapY = box.y + box.height * 0.8;
+    await page.touchscreen.tap(tapX, tapY);
+
+    await page.waitForFunction(
+      ([prevX, prevY]) => window.gameState.scrollX !== prevX || window.gameState.scrollY !== prevY,
+      [before.scrollX, before.scrollY]
+    );
+    const after = await getGameState(page);
+    expect(after.scrollX !== before.scrollX || after.scrollY !== before.scrollY).toBeTruthy();
+  });
+
+  test('ミニマップ上でタッチドラッグするとメインマップが追従スクロールする', async ({ page }) => {
+    const box = await page.getByTestId('mini-map-canvas').boundingBox();
+    const startX = box.x + box.width * 0.3;
+    const startY = box.y + box.height * 0.3;
+    const endX = box.x + box.width * 0.7;
+    const endY = box.y + box.height * 0.7;
+
+    // touchstartで初回スクロール
+    await page.evaluate(([sx, sy]) => {
+      const touch = new Touch({ identifier: 1, target: document.querySelector('[data-testid="mini-map-canvas"]'), clientX: sx, clientY: sy });
+      document.querySelector('[data-testid="mini-map-canvas"]').dispatchEvent(new TouchEvent('touchstart', { touches: [touch], changedTouches: [touch], cancelable: true }));
+    }, [startX, startY]);
+    const during1 = await getGameState(page);
+
+    // touchmoveでドラッグ
+    await page.evaluate(([ex, ey]) => {
+      const touch = new Touch({ identifier: 1, target: document.querySelector('[data-testid="mini-map-canvas"]'), clientX: ex, clientY: ey });
+      document.querySelector('[data-testid="mini-map-canvas"]').dispatchEvent(new TouchEvent('touchmove', { touches: [touch], changedTouches: [touch], cancelable: true }));
+    }, [endX, endY]);
+    const during2 = await getGameState(page);
+
+    // touchend
+    await page.evaluate(([ex, ey]) => {
+      const touch = new Touch({ identifier: 1, target: document.querySelector('[data-testid="mini-map-canvas"]'), clientX: ex, clientY: ey });
+      document.querySelector('[data-testid="mini-map-canvas"]').dispatchEvent(new TouchEvent('touchend', { touches: [], changedTouches: [touch], cancelable: true }));
+    }, [endX, endY]);
+
+    // ドラッグ中にスクロール位置が変化していること
+    expect(during2.scrollX !== during1.scrollX || during2.scrollY !== during1.scrollY).toBeTruthy();
+  });
+
+  test('ミニマップのタッチドラッグ終了後にスクロールが止まる', async ({ page }) => {
+    const box = await page.getByTestId('mini-map-canvas').boundingBox();
+    const startX = box.x + box.width * 0.3;
+    const startY = box.y + box.height * 0.3;
+    const endX = box.x + box.width * 0.7;
+    const endY = box.y + box.height * 0.7;
+
+    // タッチドラッグ実行→終了
+    await page.evaluate(([sx, sy, ex, ey]) => {
+      const mini = document.querySelector('[data-testid="mini-map-canvas"]');
+      const t1 = new Touch({ identifier: 1, target: mini, clientX: sx, clientY: sy });
+      mini.dispatchEvent(new TouchEvent('touchstart', { touches: [t1], changedTouches: [t1], cancelable: true }));
+      const t2 = new Touch({ identifier: 1, target: mini, clientX: ex, clientY: ey });
+      mini.dispatchEvent(new TouchEvent('touchmove', { touches: [t2], changedTouches: [t2], cancelable: true }));
+      const t3 = new Touch({ identifier: 1, target: mini, clientX: ex, clientY: ey });
+      mini.dispatchEvent(new TouchEvent('touchend', { touches: [], changedTouches: [t3], cancelable: true }));
+    }, [startX, startY, endX, endY]);
+    const afterDrag = await getGameState(page);
+
+    // 別の位置にタッチイベントなしでマウスを動かしても変化しない
+    await page.mouse.move(box.x + box.width * 0.1, box.y + box.height * 0.1);
+    const afterMove = await getGameState(page);
+    expect(afterMove.scrollX).toBe(afterDrag.scrollX);
+    expect(afterMove.scrollY).toBe(afterDrag.scrollY);
+  });
+});
+
+// -------------------------------------------------------
 // レスポンシブ
 // -------------------------------------------------------
 test.describe('レスポンシブ', () => {
