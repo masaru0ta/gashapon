@@ -1,0 +1,30 @@
+{
+  "tile": {
+    "size": 16,
+    "assetBasePath": "../assets/terrain/"
+  },
+  "zoom": {
+    "min": 1,
+    "max": 4,
+    "initial": 2,
+    "wheelFactor": { "zoomIn": 1.1, "zoomOut": 0.9 }
+  },
+  "scroll": {
+    "keyboardSpeed": 32,
+    "dragThreshold": { "mouse": 2, "touch": 3 }
+  },
+  "animation": {
+    "moveSpeed": 50,
+    "blinkInterval": 500
+  },
+  "miniMap": {
+    "width": 200,
+    "height": 120
+  },
+  "unitSprite": {
+    "assetBasePath": "../assets/units/",
+    "drawRatio": { "width": 0.75, "height": 1.0 },
+    "fallbackRadius": 0.35,
+    "movedOpacity": 0.4
+  }
+}

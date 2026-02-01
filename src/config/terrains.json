@@ -1,0 +1,48 @@
+{
+  "terrains": [
+    { "id": 1,  "name": "宇宙",           "file": "space.gif",      "color": "#000000" },
+    { "id": 2,  "name": "平野",           "file": "plainicon.gif",  "color": "#00aa00" },
+    { "id": 3,  "name": "森林",           "file": "foresticon.gif", "color": "#006600" },
+    { "id": 4,  "name": "アステロイド",   "file": "aste.gif",       "color": "#666666" },
+    { "id": 5,  "name": "水中",           "file": "seaicon.gif",    "color": "#0044cc" },
+    { "id": 6,  "name": "砂漠",           "file": "deserticon.gif", "color": "#ccaa00" },
+    { "id": 7,  "name": "大気圏",         "file": "air.gif",        "color": "#884400" },
+    { "id": 8,  "name": "火山",           "file": "volicon.gif",    "color": "#cc4400" },
+    { "id": 9,  "name": "小惑星",         "file": "moon.gif",       "color": "#999999" },
+    { "id": 10, "name": "クレータ",       "file": "cresmall.gif",   "color": "#aaaaaa" },
+    { "id": 11, "name": "ブラックホール", "file": "bhole.gif",      "color": "#220022" },
+    { "id": 12, "name": "大クレータ",     "file": "crelarge.gif",   "color": "#bbbbbb" },
+    { "id": 13, "name": "GP",             "file": "redgpicon.gif",  "color": "#cc0000" },
+    { "id": 14, "name": "GB",             "file": "redgb.gif",      "color": "#0000cc" },
+    { "id": 15, "name": "都市",           "file": "cityicon.gif",   "color": "#888888" },
+    { "id": 16, "name": "コロニー",       "file": "colony.gif",     "color": "#44aa88" },
+    { "id": 17, "name": "補給基地",       "file": "baseicon.gif",   "color": "#aa8844" },
+    { "id": 18, "name": "スペースベース", "file": "sbase.gif",      "color": "#4488aa" }
+  ],
+  "movementCost": {
+    "specialCosts": {
+      "COST_ALL": -1,
+      "COST_BLOCKED": -2
+    },
+    "table": {
+      "1":  { "general": 1,  "amphibious": 1,  "ship": 1 },
+      "2":  { "general": 1,  "amphibious": 1,  "ship": 1 },
+      "3":  { "general": 2,  "amphibious": 2,  "ship": 1 },
+      "4":  { "general": 3,  "amphibious": 3,  "ship": 1 },
+      "5":  { "general": 3,  "amphibious": 1,  "ship": 1 },
+      "6":  { "general": 3,  "amphibious": 3,  "ship": 1 },
+      "7":  { "general": -1, "amphibious": -1, "ship": -1 },
+      "8":  { "general": -2, "amphibious": -2, "ship": -2 },
+      "9":  { "general": 1,  "amphibious": 1,  "ship": 1 },
+      "10": { "general": 1,  "amphibious": 1,  "ship": 1 },
+      "11": { "general": -2, "amphibious": -2, "ship": -2 },
+      "12": { "general": 1,  "amphibious": 1,  "ship": 1 },
+      "13": { "general": 1,  "amphibious": 1,  "ship": 1 },
+      "14": { "general": 1,  "amphibious": 1,  "ship": 1 },
+      "15": { "general": 1,  "amphibious": 1,  "ship": 1 },
+      "16": { "general": 1,  "amphibious": 1,  "ship": 1 },
+      "17": { "general": 1,  "amphibious": 1,  "ship": 1 },
+      "18": { "general": 1,  "amphibious": 1,  "ship": 1 }
+    }
+  }
+}

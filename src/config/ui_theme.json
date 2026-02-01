@@ -1,0 +1,122 @@
+{
+  "colors": {
+    "background": "#000",
+    "text": "#e0e0e0",
+    "mapArea": {
+      "background": "#000",
+      "border": "#444"
+    },
+    "statusBar": {
+      "background": "#1a1a2e",
+      "borderTop": "#555"
+    },
+    "player1": {
+      "primary": "#4488ff",
+      "unitCount": "#4488ff"
+    },
+    "player2": {
+      "primary": "#ff4488",
+      "unitCount": "#ff4488"
+    },
+    "resource": "#44cc44",
+    "statIcons": {
+      "gp": "#4488ff",
+      "gb": "#ff4488",
+      "t": "#44cc44"
+    },
+    "turn": {
+      "number": "#44cc44",
+      "numberBg": "#224422",
+      "phase": "#cc8844"
+    },
+    "overlay": {
+      "background": "rgba(0, 0, 0, 0.7)",
+      "text": "#ccc"
+    },
+    "highlight": {
+      "hover": {
+        "fill": "rgba(255, 255, 255, 0.15)",
+        "stroke": "rgba(255, 255, 255, 0.5)",
+        "lineWidth": 2
+      },
+      "selection": {
+        "stroke": "#ffcc00",
+        "fill": "#ffcc00",
+        "lineWidth": 3,
+        "cornerRatio": 0.2,
+        "minCornerSize": 4
+      },
+      "unitSelection": {
+        "fill": "rgba(255, 255, 255, 0.1)",
+        "stroke": "#ffffff",
+        "lineWidth": 2
+      },
+      "moveRange": {
+        "fill": "rgba(0, 160, 255, 0.25)",
+        "stroke": "rgba(0, 160, 255, 0.6)",
+        "lineWidth": 1
+      },
+      "attackRange": {
+        "fill": "rgba(255, 64, 64, 0.25)",
+        "stroke": "rgba(255, 64, 64, 0.6)",
+        "lineWidth": 1
+      }
+    },
+    "miniMap": {
+      "border": "#888",
+      "background": "#222",
+      "viewport": {
+        "stroke": "#ff8800",
+        "lineWidth": 2
+      }
+    },
+    "unitFallback": {
+      "stroke": "#ffffff",
+      "strokeWidth": 2,
+      "text": "#ffffff"
+    }
+  },
+  "layout": {
+    "maxWidth": 1200,
+    "statusBar": {
+      "maxHeight": 180,
+      "padding": "clamp(2px, 0.5vh, 4px) 0"
+    },
+    "playerInfo": {
+      "padding": "clamp(2px, 1vh, 8px) clamp(8px, 2vw, 16px)",
+      "gap": "clamp(0px, 0.3vh, 2px)"
+    },
+    "centerPanel": {
+      "width": "clamp(120px, 25vw, 280px)",
+      "gap": "clamp(1px, 0.5vh, 4px)"
+    },
+    "turnDisplay": {
+      "gap": "12px"
+    },
+    "statLine": {
+      "gap": "8px"
+    },
+    "overlay": {
+      "padding": "2px 6px",
+      "borderRadius": "2px",
+      "bottom": "4px",
+      "left": "4px"
+    },
+    "turnNumber": {
+      "padding": "0 4px",
+      "borderRadius": "2px"
+    },
+    "miniMap": {
+      "maxHeight": "clamp(60px, 15vh, 120px)"
+    }
+  },
+  "fonts": {
+    "family": "'DotGothic16', 'Courier New', monospace",
+    "unitCount": "clamp(20px, 5.5vh, 42px)",
+    "turnNumber": "clamp(16px, 3.5vh, 28px)",
+    "turnPhase": "clamp(14px, 3vh, 24px)",
+    "resource": "clamp(12px, 2.3vh, 18px)",
+    "stat": "clamp(10px, 2vh, 16px)",
+    "overlay": "10px"
+  }
+}

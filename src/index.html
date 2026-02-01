@@ -10,9 +10,9 @@
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body {
-    background: #000;
-    color: #e0e0e0;
-    font-family: 'DotGothic16', 'Courier New', monospace;
+    background: var(--color-bg, #000);
+    color: var(--color-text, #e0e0e0);
+    font-family: var(--font-family, 'DotGothic16', 'Courier New', monospace);
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -25,7 +25,7 @@
     display: flex;
     flex-direction: column;
     width: 100%;
-    max-width: 1200px;
+    max-width: var(--layout-max-width, 1200px);
     height: 100vh;
     height: 100dvh;
   }
@@ -34,10 +34,10 @@
   .map-area {
     flex: 1;
     min-height: 0;
-    background: #000;
+    background: var(--color-map-bg, #000);
     position: relative;
     overflow: hidden;
-    border-bottom: 2px solid #444;
+    border-bottom: 2px solid var(--color-map-border, #444);
   }
   #mapCanvas {
     display: block;
@@ -52,13 +52,13 @@
   /* --- 地形情報オーバーレイ --- */
   .terrain-overlay {
     position: absolute;
-    bottom: 4px;
-    left: 4px;
-    background: rgba(0, 0, 0, 0.7);
-    padding: 2px 6px;
-    border-radius: 2px;
-    font-size: 10px;
-    color: #ccc;
+    bottom: var(--overlay-bottom, 4px);
+    left: var(--overlay-left, 4px);
+    background: var(--color-overlay-bg, rgba(0, 0, 0, 0.7));
+    padding: var(--overlay-padding, 2px 6px);
+    border-radius: var(--overlay-border-radius, 2px);
+    font-size: var(--font-overlay, 10px);
+    color: var(--color-overlay-text, #ccc);
     pointer-events: none;
     display: none;
   }
@@ -66,88 +66,88 @@
 
   /* --- 下部ステータスバー --- */
   .status-bar {
-    max-height: 180px;
-    background: #1a1a2e;
+    max-height: var(--status-max-height, 180px);
+    background: var(--color-status-bg, #1a1a2e);
     display: flex;
     align-items: stretch;
-    border-top: 2px solid #555;
+    border-top: 2px solid var(--color-status-border-top, #555);
     flex-shrink: 1;
     overflow: hidden;
-    padding: clamp(2px, 0.5vh, 4px) 0;
+    padding: var(--status-padding, clamp(2px, 0.5vh, 4px) 0);
   }
 
   .player-info {
     flex: 1;
-    padding: clamp(2px, 1vh, 8px) clamp(8px, 2vw, 16px);
+    padding: var(--player-info-padding, clamp(2px, 1vh, 8px) clamp(8px, 2vw, 16px));
     display: flex;
     flex-direction: column;
     justify-content: center;
-    gap: clamp(0px, 0.3vh, 2px);
+    gap: var(--player-info-gap, clamp(0px, 0.3vh, 2px));
     min-width: 0;
   }
   .player-info.left { text-align: left; }
   .player-info.right { text-align: right; }
 
   .resource-line {
-    font-size: clamp(12px, 2.3vh, 18px);
+    font-size: var(--font-resource, clamp(12px, 2.3vh, 18px));
     line-height: 1.2;
     white-space: nowrap;
-    color: #44cc44;
+    color: var(--color-resource, #44cc44);
   }
   .stat-line {
-    font-size: clamp(10px, 2vh, 16px);
+    font-size: var(--font-stat, clamp(10px, 2vh, 16px));
     line-height: 1.2;
     display: flex;
-    gap: 8px;
+    gap: var(--stat-line-gap, 8px);
   }
   .player-info.right .stat-line { justify-content: flex-end; }
   .stat-item { white-space: nowrap; }
-  .stat-item .icon-gp { color: #4488ff; }
-  .stat-item .icon-gb { color: #ff4488; }
-  .stat-item .icon-t { color: #44cc44; }
+  .stat-item .icon-gp { color: var(--color-icon-gp, #4488ff); }
+  .stat-item .icon-gb { color: var(--color-icon-gb, #ff4488); }
+  .stat-item .icon-t { color: var(--color-icon-t, #44cc44); }
 
   .unit-count {
-    font-size: clamp(20px, 5.5vh, 42px);
+    font-size: var(--font-unit-count, clamp(20px, 5.5vh, 42px));
     font-weight: bold;
     line-height: 1;
   }
-  .player-info.left .unit-count { color: #4488ff; }
-  .player-info.right .unit-count { color: #ff4488; }
+  .player-info.left .unit-count { color: var(--color-p1-unit-count, #4488ff); }
+  .player-info.right .unit-count { color: var(--color-p2-unit-count, #ff4488); }
 
   /* 中央: ミニマップ + ターン */
   .center-panel {
-    width: clamp(120px, 25vw, 280px);
+    width: var(--center-panel-width, clamp(120px, 25vw, 280px));
     flex-shrink: 0;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: clamp(1px, 0.5vh, 4px);
+    gap: var(--center-panel-gap, clamp(1px, 0.5vh, 4px));
   }
   .turn-display {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: var(--turn-display-gap, 12px);
   }
   .turn-number {
-    font-size: clamp(16px, 3.5vh, 28px);
+    font-size: var(--font-turn-number, clamp(16px, 3.5vh, 28px));
     font-weight: bold;
-    color: #44cc44;
-    background: #224422;
-    padding: 0 4px;
-    border-radius: 2px;
+    color: var(--color-turn-number, #44cc44);
+    background: var(--color-turn-number-bg, #224422);
+    padding: var(--turn-number-padding, 0 4px);
+    border-radius: var(--turn-number-border-radius, 2px);
   }
   .turn-phase {
-    font-size: clamp(14px, 3vh, 24px);
-    color: #cc8844;
+    font-size: var(--font-turn-phase, clamp(14px, 3vh, 24px));
+    color: var(--color-turn-phase, #cc8844);
   }
   #miniMapCanvas {
-    border: 1px solid #888;
-    background: #222;
+    border: 1px solid var(--color-minimap-border, #888);
+    background: var(--color-minimap-bg, #222);
     image-rendering: pixelated;
     cursor: pointer;
     max-width: 100%;
-    max-height: clamp(60px, 15vh, 120px);
+    max-height: var(--minimap-max-height, clamp(60px, 15vh, 120px));
     touch-action: none;
   }
 </style>
@@ -200,105 +200,57 @@
 </div>
 
 <script>
-// --- 地形定義 (18種) ---
-const TERRAINS = [
-  { id: 1,  name: '宇宙',           file: 'space.gif',      color: '#000000' },
-  { id: 2,  name: '平野',           file: 'plainicon.gif',  color: '#00aa00' },
-  { id: 3,  name: '森林',           file: 'foresticon.gif', color: '#006600' },
-  { id: 4,  name: 'アステロイド',   file: 'aste.gif',       color: '#666666' },
-  { id: 5,  name: '水中',           file: 'seaicon.gif',    color: '#0044cc' },
-  { id: 6,  name: '砂漠',           file: 'deserticon.gif', color: '#ccaa00' },
-  { id: 7,  name: '大気圏',         file: 'air.gif',        color: '#884400' },
-  { id: 8,  name: '火山',           file: 'volicon.gif',    color: '#cc4400' },
-  { id: 9,  name: '小惑星',         file: 'moon.gif',       color: '#999999' },
-  { id: 10, name: 'クレータ',       file: 'cresmall.gif',   color: '#aaaaaa' },
-  { id: 11, name: 'ブラックホール', file: 'bhole.gif',      color: '#220022' },
-  { id: 12, name: '大クレータ',     file: 'crelarge.gif',   color: '#bbbbbb' },
-  { id: 13, name: 'GP',             file: 'redgpicon.gif',  color: '#cc0000' },
-  { id: 14, name: 'GB',             file: 'redgb.gif',      color: '#0000cc' },
-  { id: 15, name: '都市',           file: 'cityicon.gif',   color: '#888888' },
-  { id: 16, name: 'コロニー',       file: 'colony.gif',     color: '#44aa88' },
-  { id: 17, name: '補給基地',       file: 'baseicon.gif',   color: '#aa8844' },
-  { id: 18, name: 'スペースベース', file: 'sbase.gif',      color: '#4488aa' },
-];
+// configファイルのベースパス（ページのディレクトリを基準に解決）
+const CONFIG_BASE = (() => {
+  let path = location.pathname;
+  // 拡張子なし（cleanUrlsリダイレクト等）の場合はディレクトリとして扱う
+  if (!path.endsWith('/') && !path.includes('.')) path += '/';
+  const dir = path.endsWith('/') ? path : path.substring(0, path.lastIndexOf('/') + 1);
+  return dir + 'config/';
+})();
 
-const TERRAIN_MAP = new Map(TERRAINS.map(t => [t.id, t]));
+// --- 設定値（JSONから読み込み、フォールバック用にデフォルト値を保持） ---
+let TERRAINS = [];
+let TERRAIN_MAP = new Map();
+let COST_ALL = -1;
+let COST_BLOCKED = -2;
+let MOVEMENT_COST_TABLE = {};
+let TILE_SIZE = 16;
+let MIN_SCALE = 1;
+let MAX_SCALE = 4;
+let SCROLL_SPEED = 32;
+let SAMPLE_MAP = [];
+let MAP_COLS = 25;
+let MAP_ROWS = 25;
 
-// --- 移動コスト定数・テーブル (2-1) ---
-const COST_ALL = -1;
-const COST_BLOCKED = -2;
-
-const MOVEMENT_COST_TABLE = {
-  1:  { general: 1,  amphibious: 1,  ship: 1 },
-  2:  { general: 1,  amphibious: 1,  ship: 1 },
-  3:  { general: 2,  amphibious: 2,  ship: 1 },
-  4:  { general: 3,  amphibious: 3,  ship: 1 },
-  5:  { general: 3,  amphibious: 1,  ship: 1 },
-  6:  { general: 3,  amphibious: 3,  ship: 1 },
-  7:  { general: -1, amphibious: -1, ship: -1 },
-  8:  { general: -2, amphibious: -2, ship: -2 },
-  9:  { general: 1,  amphibious: 1,  ship: 1 },
-  10: { general: 1,  amphibious: 1,  ship: 1 },
-  11: { general: -2, amphibious: -2, ship: -2 },
-  12: { general: 1,  amphibious: 1,  ship: 1 },
-  13: { general: 1,  amphibious: 1,  ship: 1 },
-  14: { general: 1,  amphibious: 1,  ship: 1 },
-  15: { general: 1,  amphibious: 1,  ship: 1 },
-  16: { general: 1,  amphibious: 1,  ship: 1 },
-  17: { general: 1,  amphibious: 1,  ship: 1 },
-  18: { general: 1,  amphibious: 1,  ship: 1 },
+// --- UI描画設定（JSONから読み込み） ---
+let DRAW = {
+  hover: { fill: 'rgba(255, 255, 255, 0.15)', stroke: 'rgba(255, 255, 255, 0.5)', lineWidth: 2 },
+  selection: { stroke: '#ffcc00', fill: '#ffcc00', lineWidth: 3, cornerRatio: 0.2, minCornerSize: 4 },
+  unitSelection: { fill: 'rgba(255, 255, 255, 0.1)', stroke: '#ffffff', lineWidth: 2 },
+  moveRange: { fill: 'rgba(0, 160, 255, 0.25)', stroke: 'rgba(0, 160, 255, 0.6)', lineWidth: 1 },
+  attackRange: { fill: 'rgba(255, 64, 64, 0.25)', stroke: 'rgba(255, 64, 64, 0.6)', lineWidth: 1 },
+  miniMapViewport: { stroke: '#ff8800', lineWidth: 2 },
+  unitFallback: { stroke: '#ffffff', strokeWidth: 2, text: '#ffffff' },
+  player1Color: '#4488ff',
+  player2Color: '#ff4488',
 };
 
-const TILE_SIZE = 16;
-const MIN_SCALE = 1;
-const MAX_SCALE = 4;
-const SCROLL_SPEED = 32;
-
-// --- サンプルマップデータ (25x25) ---
-const SAMPLE_MAP = [
-  [ 1, 1, 1, 1, 4, 4, 1, 1, 1, 1, 1, 1, 9, 9, 1, 1, 1, 1, 1, 1, 1, 4, 4, 1, 1],
-  [ 1, 1, 1, 4, 4, 1, 1,16, 1, 1, 1, 1, 1, 9, 1, 1, 1, 1, 1, 1, 1, 1, 4, 1, 1],
-  [ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,11, 1, 1, 1, 1, 1, 1, 1, 9, 9, 1, 1, 1, 1, 1],
-  [ 1, 1,13, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 9, 1, 1, 1, 1, 1],
-  [ 1, 1, 1, 1, 2, 2, 3, 3, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-  [ 1, 1, 1, 2, 2, 3, 3, 5, 5, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-  [ 1, 1, 1, 2, 3,15, 2, 5, 2,15, 3, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-  [ 1, 1, 1, 2, 3, 2, 6, 6, 6, 2, 3, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-  [ 1, 1, 1, 2, 3, 2, 6, 8, 6, 2, 3, 2, 1, 1,18, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-  [ 1, 1, 1, 2, 3,17, 2, 6, 2,17, 3, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-  [ 1, 1, 1, 2, 2, 3, 3, 7, 3, 3, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-  [ 1, 1, 1, 1, 2, 2, 3, 3, 3, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-  [ 1, 1, 1, 1, 1, 1, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-  [ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,14, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-  [ 1,10,10, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,10,10, 1],
-  [ 1,10,12, 1, 1, 1, 1, 1, 1, 1, 1, 4, 4, 1, 1, 1, 1, 1, 1, 1, 1, 1,10,12, 1],
-  [ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 3, 3, 2, 1, 1, 1, 1, 1],
-  [ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 3, 5, 3, 2, 2, 1, 1, 1, 1],
-  [ 1, 1, 1, 1, 1, 1, 9, 9, 1, 1, 1, 1, 1, 1, 2, 3,15, 5,15, 3, 2, 1, 1, 1, 1],
-  [ 1, 1, 1, 1, 1, 1, 9, 1, 1, 1, 1, 1, 1, 1, 2, 3, 6, 6, 6, 3, 2, 1, 1, 1, 1],
-  [ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 3,17, 8,17, 3, 2, 1, 1, 1, 1],
-  [ 1, 1, 1, 1, 1,16, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 3, 3, 3, 2, 1, 1, 1, 1, 1],
-  [ 1, 1, 1, 1, 1, 1, 1, 1, 1,13, 1, 1, 1, 1, 1, 1, 2, 2, 2, 1, 1, 1, 1, 1, 1],
-  [ 1, 1, 4, 4, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 4, 4, 1, 1],
-  [ 1, 1, 1, 4, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 4, 4, 1, 1, 1],
-];
-
-const MAP_COLS = SAMPLE_MAP[0].length;
-const MAP_ROWS = SAMPLE_MAP.length;
+// --- マップ表示設定（JSONから読み込み） ---
+let ZOOM_WHEEL_IN = 1.1;
+let ZOOM_WHEEL_OUT = 0.9;
+let DRAG_THRESHOLD_MOUSE = 2;
+let DRAG_THRESHOLD_TOUCH = 3;
+let BLINK_INTERVAL = 500;
+let TILE_ASSET_BASE = '../assets/terrain/';
+let UNIT_ASSET_BASE = '../assets/units/';
+let UNIT_DRAW_RATIO_W = 0.75;
+let UNIT_DRAW_RATIO_H = 1.0;
+let UNIT_FALLBACK_RADIUS = 0.35;
+let UNIT_MOVED_OPACITY = 0.4;
 
 // --- サンプルユニットデータ (2-1) ---
-const SAMPLE_UNITS = [
-  { id: 1,  player: 1, type: 'general',    name: 'ZAKU',    col: 2,  row: 2,  mv: 4, moved: false, hp: 100 },
-  { id: 2,  player: 1, type: 'general',    name: 'DOM',     col: 3,  row: 5,  mv: 4, moved: false, hp: 100 },
-  { id: 3,  player: 1, type: 'amphibious', name: 'ZGOK',    col: 5,  row: 8,  mv: 4, moved: false, hp: 100 },
-  { id: 4,  player: 1, type: 'ship',       name: 'MOUSAI',  col: 1,  row: 4,  mv: 5, moved: false, hp: 100 },
-  { id: 5,  player: 2, type: 'general',    name: 'GM',      col: 22, row: 2,  mv: 4, moved: false, hp: 80 },
-  { id: 6,  player: 2, type: 'general',    name: 'GUNDAM',  col: 20, row: 5,  mv: 6, moved: false, hp: 100 },
-  { id: 7,  player: 2, type: 'amphibious', name: 'AQUA-GM', col: 18, row: 8,  mv: 4, moved: false, hp: 100 },
-  { id: 8,  player: 2, type: 'ship',       name: 'SALAMIS', col: 23, row: 4,  mv: 5, moved: false, hp: 100 },
-];
-
-let units = SAMPLE_UNITS.map(u => ({...u, spriteImage: null}));
+let units = [];
 let selectedUnitId = -1;
 let movementRange = {};
 let currentPlayer = 1;
@@ -397,26 +349,144 @@ function updateGameState() {
   };
 }
 
+// --- JSON設定読み込み ---
+async function loadConfig() {
+  try {
+    const [terrainsData, mapData, settingsData, themeData] = await Promise.all([
+      fetch(CONFIG_BASE + 'terrains.json').then(r => r.json()),
+      fetch(CONFIG_BASE + 'map_sample.json').then(r => r.json()),
+      fetch(CONFIG_BASE + 'map_settings.json').then(r => r.json()),
+      fetch(CONFIG_BASE + 'ui_theme.json').then(r => r.json()),
+    ]);
+
+    // 地形定義
+    TERRAINS = terrainsData.terrains;
+    TERRAIN_MAP = new Map(TERRAINS.map(t => [t.id, t]));
+    COST_ALL = terrainsData.movementCost.specialCosts.COST_ALL;
+    COST_BLOCKED = terrainsData.movementCost.specialCosts.COST_BLOCKED;
+    const rawTable = terrainsData.movementCost.table;
+    MOVEMENT_COST_TABLE = {};
+    for (const key of Object.keys(rawTable)) {
+      MOVEMENT_COST_TABLE[Number(key)] = rawTable[key];
+    }
+
+    // マップデータ
+    SAMPLE_MAP = mapData.map;
+    MAP_COLS = SAMPLE_MAP[0].length;
+    MAP_ROWS = SAMPLE_MAP.length;
+    units = mapData.units.map(u => ({...u, spriteImage: null}));
+
+    // マップ表示設定
+    TILE_SIZE = settingsData.tile.size;
+    TILE_ASSET_BASE = settingsData.tile.assetBasePath;
+    MIN_SCALE = settingsData.zoom.min;
+    MAX_SCALE = settingsData.zoom.max;
+    scale = settingsData.zoom.initial;
+    ZOOM_WHEEL_IN = settingsData.zoom.wheelFactor.zoomIn;
+    ZOOM_WHEEL_OUT = settingsData.zoom.wheelFactor.zoomOut;
+    SCROLL_SPEED = settingsData.scroll.keyboardSpeed;
+    DRAG_THRESHOLD_MOUSE = settingsData.scroll.dragThreshold.mouse;
+    DRAG_THRESHOLD_TOUCH = settingsData.scroll.dragThreshold.touch;
+    animationSpeed = settingsData.animation.moveSpeed;
+    BLINK_INTERVAL = settingsData.animation.blinkInterval;
+    UNIT_ASSET_BASE = settingsData.unitSprite.assetBasePath;
+    UNIT_DRAW_RATIO_W = settingsData.unitSprite.drawRatio.width;
+    UNIT_DRAW_RATIO_H = settingsData.unitSprite.drawRatio.height;
+    UNIT_FALLBACK_RADIUS = settingsData.unitSprite.fallbackRadius;
+    UNIT_MOVED_OPACITY = settingsData.unitSprite.movedOpacity;
+
+    // ミニマップサイズ
+    miniCanvas.width = settingsData.miniMap.width;
+    miniCanvas.height = settingsData.miniMap.height;
+
+    // UI描画設定
+    const hl = themeData.colors.highlight;
+    DRAW.hover = hl.hover;
+    DRAW.selection = hl.selection;
+    DRAW.unitSelection = hl.unitSelection;
+    DRAW.moveRange = hl.moveRange;
+    DRAW.attackRange = hl.attackRange;
+    DRAW.miniMapViewport = themeData.colors.miniMap.viewport;
+    DRAW.unitFallback = themeData.colors.unitFallback;
+    DRAW.player1Color = themeData.colors.player1.primary;
+    DRAW.player2Color = themeData.colors.player2.primary;
+
+    // CSSカスタムプロパティを適用
+    applyTheme(themeData);
+  } catch (e) {
+    console.warn('Config load failed, using defaults:', e);
+  }
+}
+
+function applyTheme(theme) {
+  const s = document.documentElement.style;
+  // 色
+  s.setProperty('--color-bg', theme.colors.background);
+  s.setProperty('--color-text', theme.colors.text);
+  s.setProperty('--color-map-bg', theme.colors.mapArea.background);
+  s.setProperty('--color-map-border', theme.colors.mapArea.border);
+  s.setProperty('--color-status-bg', theme.colors.statusBar.background);
+  s.setProperty('--color-status-border-top', theme.colors.statusBar.borderTop);
+  s.setProperty('--color-p1-unit-count', theme.colors.player1.unitCount);
+  s.setProperty('--color-p2-unit-count', theme.colors.player2.unitCount);
+  s.setProperty('--color-resource', theme.colors.resource);
+  s.setProperty('--color-icon-gp', theme.colors.statIcons.gp);
+  s.setProperty('--color-icon-gb', theme.colors.statIcons.gb);
+  s.setProperty('--color-icon-t', theme.colors.statIcons.t);
+  s.setProperty('--color-turn-number', theme.colors.turn.number);
+  s.setProperty('--color-turn-number-bg', theme.colors.turn.numberBg);
+  s.setProperty('--color-turn-phase', theme.colors.turn.phase);
+  s.setProperty('--color-overlay-bg', theme.colors.overlay.background);
+  s.setProperty('--color-overlay-text', theme.colors.overlay.text);
+  s.setProperty('--color-minimap-border', theme.colors.miniMap.border);
+  s.setProperty('--color-minimap-bg', theme.colors.miniMap.background);
+  // フォント
+  s.setProperty('--font-family', theme.fonts.family);
+  s.setProperty('--font-unit-count', theme.fonts.unitCount);
+  s.setProperty('--font-turn-number', theme.fonts.turnNumber);
+  s.setProperty('--font-turn-phase', theme.fonts.turnPhase);
+  s.setProperty('--font-resource', theme.fonts.resource);
+  s.setProperty('--font-stat', theme.fonts.stat);
+  s.setProperty('--font-overlay', theme.fonts.overlay);
+  // レイアウト
+  s.setProperty('--layout-max-width', theme.layout.maxWidth + 'px');
+  s.setProperty('--status-max-height', theme.layout.statusBar.maxHeight + 'px');
+  s.setProperty('--status-padding', theme.layout.statusBar.padding);
+  s.setProperty('--player-info-padding', theme.layout.playerInfo.padding);
+  s.setProperty('--player-info-gap', theme.layout.playerInfo.gap);
+  s.setProperty('--center-panel-width', theme.layout.centerPanel.width);
+  s.setProperty('--center-panel-gap', theme.layout.centerPanel.gap);
+  s.setProperty('--turn-display-gap', theme.layout.turnDisplay.gap);
+  s.setProperty('--stat-line-gap', theme.layout.statLine.gap);
+  s.setProperty('--overlay-padding', theme.layout.overlay.padding);
+  s.setProperty('--overlay-border-radius', theme.layout.overlay.borderRadius);
+  s.setProperty('--overlay-bottom', theme.layout.overlay.bottom);
+  s.setProperty('--overlay-left', theme.layout.overlay.left);
+  s.setProperty('--turn-number-padding', theme.layout.turnNumber.padding);
+  s.setProperty('--turn-number-border-radius', theme.layout.turnNumber.borderRadius);
+  s.setProperty('--minimap-max-height', theme.layout.miniMap.maxHeight);
+}
+
 // --- タイル画像読み込み ---
 const tileImages = {};
 let loadedCount = 0;
 
 function loadTileImages(callback) {
-  const basePath = '../assets/terrain/';
+  if (TERRAINS.length === 0) { callback(); return; }
+  loadedCount = 0;
   TERRAINS.forEach(t => {
     const img = new Image();
     img.onload = img.onerror = () => {
       if (!img.naturalWidth) tileImages[t.id] = null;
       if (++loadedCount === TERRAINS.length) callback();
     };
-    img.src = basePath + t.file;
+    img.src = TILE_ASSET_BASE + t.file;
     tileImages[t.id] = img;
   });
 }
 
 // --- ユニットスプライト読み込み (2-1) ---
 function loadUnitSprites(callback) {
-  const basePath = '../assets/units/';
   let loaded = 0;
   const total = units.length;
   if (total === 0) { callback(); return; }
@@ -432,7 +502,7 @@ function loadUnitSprites(callback) {
       unit.spriteImage = null;
       if (++loaded === total) callback();
     };
-    img.src = basePath + fileName;
+    img.src = UNIT_ASSET_BASE + fileName;
   });
 }
 
@@ -672,6 +742,7 @@ function handleTileClick(col, row) {
 
 // --- マップ描画 ---
 function drawMap() {
+  if (SAMPLE_MAP.length === 0) return;
   const t = ts();
   const ox = mapOffsetX();
   const oy = mapOffsetY();
@@ -699,18 +770,6 @@ function drawMap() {
     }
   }
 
-  // グリッド線
-  ctx.strokeStyle = 'rgba(200, 200, 200, 0.2)';
-  ctx.lineWidth = 1;
-  for (let c = Math.floor(scrollX / t); c <= Math.ceil((scrollX + canvasW) / t); c++) {
-    const x = Math.round(c * t - scrollX + ox) + 0.5;
-    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvasH); ctx.stroke();
-  }
-  for (let r = Math.floor(scrollY / t); r <= Math.ceil((scrollY + canvasH) / t); r++) {
-    const y = Math.round(r * t - scrollY + oy) + 0.5;
-    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvasW, y); ctx.stroke();
-  }
-
   // 移動範囲ハイライト (2-1)
   if (selectedUnitId !== -1) {
     for (const key of Object.keys(movementRange)) {
@@ -722,16 +781,16 @@ function drawMap() {
       const ry = r * t - scrollY + oy;
       const enemyUnit = getUnitAtPos(c, r);
       if (enemyUnit && enemyUnit.player !== currentPlayer) {
-        ctx.fillStyle = 'rgba(255, 64, 64, 0.25)';
+        ctx.fillStyle = DRAW.attackRange.fill;
         ctx.fillRect(rx, ry, t, t);
-        ctx.strokeStyle = 'rgba(255, 64, 64, 0.6)';
-        ctx.lineWidth = 1;
+        ctx.strokeStyle = DRAW.attackRange.stroke;
+        ctx.lineWidth = DRAW.attackRange.lineWidth;
         ctx.strokeRect(rx + 0.5, ry + 0.5, t - 1, t - 1);
       } else {
-        ctx.fillStyle = 'rgba(0, 160, 255, 0.25)';
+        ctx.fillStyle = DRAW.moveRange.fill;
         ctx.fillRect(rx, ry, t, t);
-        ctx.strokeStyle = 'rgba(0, 160, 255, 0.6)';
-        ctx.lineWidth = 1;
+        ctx.strokeStyle = DRAW.moveRange.stroke;
+        ctx.lineWidth = DRAW.moveRange.lineWidth;
         ctx.strokeRect(rx + 0.5, ry + 0.5, t - 1, t - 1);
       }
     }
@@ -750,25 +809,25 @@ function drawMap() {
     if (drawCol < startCol - 1 || drawCol > endCol + 1 || drawRow < startRow - 1 || drawRow > endRow + 1) continue;
     const ux = drawCol * t - scrollX + ox;
     const uy = drawRow * t - scrollY + oy;
-    if (unit.moved) ctx.globalAlpha = 0.4;
+    if (unit.moved) ctx.globalAlpha = UNIT_MOVED_OPACITY;
     if (unit.spriteImage && unit.spriteImage.complete && unit.spriteImage.naturalWidth > 0) {
-      const sw = t * 0.75;
-      const sh = t * 1.0;
+      const sw = t * UNIT_DRAW_RATIO_W;
+      const sh = t * UNIT_DRAW_RATIO_H;
       const dx = ux + (t - sw) / 2;
       const dy = uy + (t - sh) / 2;
       ctx.drawImage(unit.spriteImage, dx, dy, sw, sh);
     } else {
-      const cr = t * 0.35;
+      const cr = t * UNIT_FALLBACK_RADIUS;
       const ccx = ux + t / 2;
       const ccy = uy + t / 2;
       ctx.beginPath();
       ctx.arc(ccx, ccy, cr, 0, Math.PI * 2);
-      ctx.fillStyle = unit.player === 1 ? '#4488ff' : '#ff4488';
+      ctx.fillStyle = unit.player === 1 ? DRAW.player1Color : DRAW.player2Color;
       ctx.fill();
-      ctx.strokeStyle = '#ffffff';
-      ctx.lineWidth = 2;
+      ctx.strokeStyle = DRAW.unitFallback.stroke;
+      ctx.lineWidth = DRAW.unitFallback.strokeWidth;
       ctx.stroke();
-      ctx.fillStyle = '#ffffff';
+      ctx.fillStyle = DRAW.unitFallback.text;
       ctx.font = 'bold ' + Math.max(8, t * 0.4) + 'px sans-serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
@@ -781,10 +840,10 @@ function drawMap() {
   if (hoverCol >= 0 && hoverRow >= 0 && hoverCol < MAP_COLS && hoverRow < MAP_ROWS) {
     const hx = hoverCol * t - scrollX + ox;
     const hy = hoverRow * t - scrollY + oy;
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.15)';
+    ctx.fillStyle = DRAW.hover.fill;
     ctx.fillRect(hx, hy, t, t);
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
-    ctx.lineWidth = 2;
+    ctx.strokeStyle = DRAW.hover.stroke;
+    ctx.lineWidth = DRAW.hover.lineWidth;
     ctx.strokeRect(hx + 1, hy + 1, t - 2, t - 2);
   }
 
@@ -794,10 +853,10 @@ function drawMap() {
     if (su) {
       const sux = su.col * t - scrollX + ox;
       const suy = su.row * t - scrollY + oy;
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
+      ctx.fillStyle = DRAW.unitSelection.fill;
       ctx.fillRect(sux, suy, t, t);
-      ctx.strokeStyle = '#ffffff';
-      ctx.lineWidth = 2;
+      ctx.strokeStyle = DRAW.unitSelection.stroke;
+      ctx.lineWidth = DRAW.unitSelection.lineWidth;
       ctx.strokeRect(sux + 1, suy + 1, t - 2, t - 2);
     }
   }
@@ -806,11 +865,11 @@ function drawMap() {
   if (blinkVisible && selectedCol >= 0 && selectedRow >= 0 && selectedCol < MAP_COLS && selectedRow < MAP_ROWS) {
     const sx = selectedCol * t - scrollX + ox;
     const sy = selectedRow * t - scrollY + oy;
-    ctx.strokeStyle = '#ffcc00';
-    ctx.lineWidth = 3;
+    ctx.strokeStyle = DRAW.selection.stroke;
+    ctx.lineWidth = DRAW.selection.lineWidth;
     ctx.strokeRect(sx + 1, sy + 1, t - 2, t - 2);
-    const m = Math.max(4, t * 0.2);
-    ctx.fillStyle = '#ffcc00';
+    const m = Math.max(DRAW.selection.minCornerSize, t * DRAW.selection.cornerRatio);
+    ctx.fillStyle = DRAW.selection.fill;
     ctx.fillRect(sx, sy, m, m);
     ctx.fillRect(sx + t - m, sy, m, m);
     ctx.fillRect(sx, sy + t - m, m, m);
@@ -823,6 +882,7 @@ const miniCanvas = document.getElementById('miniMapCanvas');
 const miniCtx = miniCanvas.getContext('2d');
 
 function drawMiniMap() {
+  if (SAMPLE_MAP.length === 0) return;
   const mw = miniCanvas.width;
   const mh = miniCanvas.height;
   const tileW = mw / MAP_COLS;
@@ -844,7 +904,7 @@ function drawMiniMap() {
     const dx = unit.col * tileW;
     const dy = unit.row * tileH;
     const dotSize = Math.max(tileW, 2);
-    miniCtx.fillStyle = unit.player === 1 ? '#4488ff' : '#ff4488';
+    miniCtx.fillStyle = unit.player === 1 ? DRAW.player1Color : DRAW.player2Color;
     miniCtx.fillRect(dx, dy, dotSize, dotSize);
   }
 
@@ -853,8 +913,8 @@ function drawMiniMap() {
   const vy = (scrollY / (MAP_ROWS * t)) * mh;
   const vw = (canvasW / (MAP_COLS * t)) * mw;
   const vh = (canvasH / (MAP_ROWS * t)) * mh;
-  miniCtx.strokeStyle = '#ff8800';
-  miniCtx.lineWidth = 2;
+  miniCtx.strokeStyle = DRAW.miniMapViewport.stroke;
+  miniCtx.lineWidth = DRAW.miniMapViewport.lineWidth;
   miniCtx.strokeRect(vx, vy, Math.min(vw, mw - vx), Math.min(vh, mh - vy));
 }
 
@@ -906,7 +966,7 @@ document.addEventListener('keydown', (e) => {
 // --- マウスホイールズーム ---
 canvas.addEventListener('wheel', (e) => {
   e.preventDefault();
-  zoomAt(e.clientX, e.clientY, scale * (e.deltaY > 0 ? 0.9 : 1.1));
+  zoomAt(e.clientX, e.clientY, scale * (e.deltaY > 0 ? ZOOM_WHEEL_OUT : ZOOM_WHEEL_IN));
 }, { passive: false });
 
 // --- マウスドラッグスクロール & ミニマップ操作 ---
@@ -966,7 +1026,7 @@ window.addEventListener('mousemove', (e) => {
     const rect = canvas.getBoundingClientRect();
     const dx = (dragStartX - e.clientX) * (canvasW / rect.width);
     const dy = (dragStartY - e.clientY) * (canvasH / rect.height);
-    if (Math.abs(dx) > 2 || Math.abs(dy) > 2) dragMoved = true;
+    if (Math.abs(dx) > DRAG_THRESHOLD_MOUSE || Math.abs(dy) > DRAG_THRESHOLD_MOUSE) dragMoved = true;
     scrollX = dragScrollX + dx;
     scrollY = dragScrollY + dy;
     refreshView();
@@ -1056,7 +1116,7 @@ canvas.addEventListener('touchmove', (e) => {
     const rect = canvas.getBoundingClientRect();
     const dx = (touchStartX - e.touches[0].clientX) * (canvasW / rect.width);
     const dy = (touchStartY - e.touches[0].clientY) * (canvasH / rect.height);
-    if (Math.abs(dx) > 3 || Math.abs(dy) > 3) touchMoved = true;
+    if (Math.abs(dx) > DRAG_THRESHOLD_TOUCH || Math.abs(dy) > DRAG_THRESHOLD_TOUCH) touchMoved = true;
     scrollX = touchScrollX + dx;
     scrollY = touchScrollY + dy;
     refreshView();
@@ -1087,7 +1147,7 @@ setInterval(() => {
     blinkVisible = !blinkVisible;
     drawMap();
   }
-}, 500);
+}, BLINK_INTERVAL);
 
 // --- グローバルテスト関数 (2-1) ---
 window.resetTurn = function() {
@@ -1118,7 +1178,7 @@ window.calculateMovementRange = function(unitId) {
   return calculateMovementRangeForUnit(unit);
 };
 
-window._SAMPLE_MAP = SAMPLE_MAP;
+window._SAMPLE_MAP = null; // loadConfig完了後に設定
 
 window.setAnimationSpeed = function(ms) {
   animationSpeed = ms;
@@ -1139,16 +1199,15 @@ window.getAnimatingUnitDrawPos = function() {
 
 // --- 初期化 ---
 window.addEventListener('resize', resizeCanvas);
-loadTileImages(() => {
-  loadUnitSprites(() => {
-    resizeCanvas();
-    updateGameState();
+loadConfig().then(() => {
+  window._SAMPLE_MAP = SAMPLE_MAP;
+  loadTileImages(() => {
+    loadUnitSprites(() => {
+      resizeCanvas();
+      updateGameState();
+    });
   });
 });
-setTimeout(() => {
-  resizeCanvas();
-  updateGameState();
-}, 50);
 </script>
 </body>
 </html>

@@ -12,6 +12,15 @@
 
 **使用技術**: HTML5 Canvas、JavaScript（バニラ）、Google Fonts（DotGothic16）
 
+**設定ファイル**: 定数値はすべて `src/config/` 配下のJSONファイルに外出し。本仕様書では具体値を記載せず、JSONキー名で参照する。
+
+| JSONファイル | 本仕様での主な参照内容 |
+|---|---|
+| `src/config/ui_theme.json` | ユニット色・ハイライト色・フォールバック表示色 |
+| `src/config/map_settings.json` | スプライト描画比率・移動アニメーション速度・フォールバック半径 |
+| `src/config/terrains.json` | 移動コストテーブル・特殊コスト定数 |
+| `src/config/map_sample.json` | サンプルユニット配置データ |
+
 ## 2. 画面レイアウト等の補足資料等の関連資料
 
 ### 2.1 モックアップ
@@ -27,7 +36,7 @@
 
 ### 2.3 アセット
 
-- **ユニットスプライト画像**: `assets/units/` 配下のGIFファイル（各24x32px）
+- **ユニットスプライト画像**: `map_settings.json > unitSprite.assetBasePath` 配下のGIFファイル（各24x32px）
   - 命名規則: `{ユニット名}{軍色}btlf.gif`（正面画像をマップ表示に使用）
   - 軍色: `b` = P1（青軍）、`r` = P2（赤軍）
 - **地形タイル画像**: `assets/terrain/` 配下（1-1で定義済み）
@@ -40,53 +49,56 @@
 
 #### 3.1.1 ユニットスプライト（マップ上）
 
-| 項目 | 値 |
+| 項目 | 参照 |
 |------|-----|
 | 元画像サイズ | 24x32px |
 | 描画方法 | タイルの中央に配置し、タイルサイズに収まるよう縮小描画 |
-| 描画サイズ | 幅 = tileScaledSize × 0.75、高さ = tileScaledSize × 1.0（アスペクト比3:4を維持） |
+| 描画サイズ（幅） | tileScaledSize × `map_settings.json > unitSprite.drawRatio.width` |
+| 描画サイズ（高さ） | tileScaledSize × `map_settings.json > unitSprite.drawRatio.height` |
 | 描画位置 | タイル中央に水平・垂直ともにセンタリング |
 | レンダリング | `image-rendering: pixelated` でドット絵のシャープさを保持 |
 | 画像未取得時 | フォールバック表示（後述） |
 
 **フォールバック表示**（スプライト画像がないユニット）:
 
-| 項目 | 値 |
+| 項目 | 参照 |
 |------|-----|
-| 形状 | 円形（直径 = tileScaledSize × 0.7） |
-| 背景色 | P1: `#4488ff`（青）、P2: `#ff4488`（ピンク） |
-| 枠線 | 白 `#ffffff`、2px |
-| テキスト | ユニット名の先頭1文字、白色、太字 |
+| 形状 | 円形（直径 = tileScaledSize × `map_settings.json > unitSprite.fallbackRadius` × 2） |
+| 背景色（P1） | `ui_theme.json > colors.player1.primary` |
+| 背景色（P2） | `ui_theme.json > colors.player2.primary` |
+| 枠線色 | `ui_theme.json > colors.unitFallback.stroke` |
+| 枠線幅 | `ui_theme.json > colors.unitFallback.strokeWidth` |
+| テキスト | ユニット名の先頭1文字、`ui_theme.json > colors.unitFallback.text` 色、太字 |
 
 **移動済みユニット**:
 
-| 項目 | 値 |
+| 項目 | 参照 |
 |------|-----|
-| 表示 | スプライト全体の不透明度を0.4に変更 |
+| 表示 | スプライト全体の不透明度を `map_settings.json > unitSprite.movedOpacity` に変更 |
 | 効果 | 未移動ユニットと視覚的に区別可能にする |
 
 #### 3.1.2 ユニット選択表示
 
-| 項目 | 値 |
+| 項目 | 参照 |
 |------|-----|
-| 枠線色 | `#ffffff`（白） |
-| 枠線幅 | 2px |
-| 点滅 | 500msごとに表示/非表示を切り替え（1-1タイル選択と同じ間隔） |
-| 塗り | `rgba(255, 255, 255, 0.1)` |
+| 枠線色 | `ui_theme.json > colors.highlight.unitSelection.stroke` |
+| 枠線幅 | `ui_theme.json > colors.highlight.unitSelection.lineWidth` |
+| 点滅 | `map_settings.json > animation.blinkInterval` ごとに表示/非表示を切り替え（1-1タイル選択と同じ間隔） |
+| 塗り | `ui_theme.json > colors.highlight.unitSelection.fill` |
 
 #### 3.1.3 移動範囲ハイライト
 
-| 項目 | 値 |
+| 項目 | 参照 |
 |------|-----|
-| 移動可能タイル（空きタイル） | 塗り: `rgba(0, 160, 255, 0.25)`、枠: `rgba(0, 160, 255, 0.6)` 線幅1px |
-| 移動可能タイル（敵ユニットあり） | 塗り: `rgba(255, 64, 64, 0.25)`、枠: `rgba(255, 64, 64, 0.6)` 線幅1px |
+| 移動可能タイル（空きタイル） | 塗り・枠・線幅は `ui_theme.json > colors.highlight.moveRange` を参照 |
+| 移動可能タイル（敵ユニットあり） | 塗り・枠・線幅は `ui_theme.json > colors.highlight.attackRange` を参照 |
 
 #### 3.1.4 ミニマップ上のユニット表示
 
-| 項目 | 値 |
+| 項目 | 参照 |
 |------|-----|
-| P1ユニット | `#4488ff`（青）ドット |
-| P2ユニット | `#ff4488`（ピンク）ドット |
+| P1ユニット | `ui_theme.json > colors.player1.primary` のドット |
+| P2ユニット | `ui_theme.json > colors.player2.primary` のドット |
 | ドットサイズ | ミニマップのタイルサイズ（= miniMapWidth / MAP_COLS）を基準に最低2px |
 
 ### 3.2 処理ロジック
@@ -123,7 +135,7 @@ unitSelected → (Escapeキー押下) → idle（選択解除）
 3. それ以外 → 選択解除
 
 **ドラッグ操作との区別**:
-- 1-1と同様、マウスはドラッグ距離2px以下、タッチは3px以下の場合のみクリック判定
+- 1-1と同様、マウスは `map_settings.json > scroll.dragThreshold.mouse` px以下、タッチは `scroll.dragThreshold.touch` px以下の場合のみクリック判定
 - ドラッグ操作中はユニット選択・移動を行わない
 
 #### 3.2.3 移動範囲計算
@@ -194,7 +206,7 @@ function getMovementCost(terrainId, unitType):
   return MOVEMENT_COST_TABLE[terrainId][unitType]
 ```
 
-移動コスト表は3.3.3節で定義。
+移動コストテーブルは `terrains.json > movementCost.table` を参照。特殊コスト定数は `terrains.json > movementCost.specialCosts` を参照。
 
 #### 3.2.5 移動実行処理
 
@@ -224,13 +236,13 @@ for each unit in units:
   pixelY = unit.row × tileScaledSize - scrollY
 
   if unit.spriteImage が読み込み済み:
-    spriteW = tileScaledSize × 0.75
-    spriteH = tileScaledSize × 1.0
+    spriteW = tileScaledSize × unitSprite.drawRatio.width  // map_settings.json参照
+    spriteH = tileScaledSize × unitSprite.drawRatio.height // map_settings.json参照
     drawX = pixelX + (tileScaledSize - spriteW) / 2
     drawY = pixelY + (tileScaledSize - spriteH) / 2
 
     if unit.moved:
-      ctx.globalAlpha = 0.4
+      ctx.globalAlpha = unitSprite.movedOpacity  // map_settings.json参照
     ctx.drawImage(unit.spriteImage, drawX, drawY, spriteW, spriteH)
     ctx.globalAlpha = 1.0
   else:
@@ -245,7 +257,7 @@ for each unit in units:
   dotX = unit.col × (miniMapWidth / MAP_COLS)
   dotY = unit.row × (miniMapHeight / MAP_ROWS)
   dotSize = max(miniMapWidth / MAP_COLS, 2)
-  color = unit.player === 1 ? '#4488ff' : '#ff4488'
+  color = unit.player === 1 ? colors.player1.primary : colors.player2.primary  // ui_theme.json参照
   fillRect(dotX, dotY, dotSize, dotSize, color)
 ```
 
@@ -262,7 +274,7 @@ for each unit in units:
 #### 3.2.8 スプライト画像読み込み処理
 
 - ユニットデータ初期化時に、各ユニットの正面スプライト画像を非同期で読み込む
-- ファイルパス: `assets/units/{ユニット名小文字}{軍色}btlf.gif`
+- ファイルパス: `{map_settings.json > unitSprite.assetBasePath}{ユニット名小文字}{軍色}btlf.gif`
 - 読み込み失敗時は `null` をセットし、フォールバック描画を使用
 - 1-1の地形画像と同様、`onload`/`onerror` でカウントし全画像完了後に初期描画
 
@@ -272,9 +284,9 @@ for each unit in units:
 
 **アニメーション仕様:**
 
-| 項目 | 値 |
+| 項目 | 参照 |
 |------|-----|
-| 移動速度 | 1タイルあたり100ms（テスト用に変更可能） |
+| 移動速度 | `map_settings.json > animation.moveSpeed`（1タイルあたりのms。テスト用に変更可能） |
 | 移動方式 | マス単位の離散移動（タイル間の補間なし、1マスずつジャンプ） |
 | アニメーション中の操作 | ユニット選択・移動操作・Escape解除を無効化 |
 
@@ -306,7 +318,7 @@ for each unit in units:
 
 #### 3.3.1 ユニットデータ構造
 
-**データ取得元**: JavaScript内のオブジェクト配列（将来的にはGASからの読み込みに変更予定）
+**データ取得元**: `src/config/map_sample.json > units` 配列（将来的にはGASからの読み込みに変更予定）
 
 ```javascript
 // ユニット定義（マップ移動に必要な最小データ）
@@ -339,80 +351,20 @@ const unit = {
 
 #### 3.3.2 サンプルユニットデータ
 
-テスト・開発用に以下のサンプルユニットをマップ上に配置する。
-
-```javascript
-const SAMPLE_UNITS = [
-  // P1（青軍）
-  { id: 1,  player: 1, type: 'general',    name: 'ZAKU',   col: 2,  row: 2,  mv: 4, moved: false, hp: 100 },
-  { id: 2,  player: 1, type: 'general',    name: 'DOM',    col: 3,  row: 5,  mv: 4, moved: false, hp: 100 },
-  { id: 3,  player: 1, type: 'amphibious', name: 'ZGOK',   col: 5,  row: 8,  mv: 4, moved: false, hp: 100 },
-  { id: 4,  player: 1, type: 'ship',       name: 'MOUSAI', col: 1,  row: 4,  mv: 5, moved: false, hp: 100 },
-  // P2（赤軍）
-  { id: 5,  player: 2, type: 'general',    name: 'GM',     col: 22, row: 2,  mv: 4, moved: false, hp: 80 },
-  { id: 6,  player: 2, type: 'general',    name: 'GUNDAM', col: 20, row: 5,  mv: 6, moved: false, hp: 100 },
-  { id: 7,  player: 2, type: 'amphibious', name: 'AQUA-GM',col: 18, row: 8,  mv: 4, moved: false, hp: 100 },
-  { id: 8,  player: 2, type: 'ship',       name: 'SALAMIS',col: 23, row: 4,  mv: 5, moved: false, hp: 100 },
-];
-```
+テスト・開発用のサンプルユニットは `src/config/map_sample.json > units` 配列を参照。
 
 #### 3.3.3 移動コスト表
 
-**特殊コスト定数**:
+**データ取得元**: `src/config/terrains.json > movementCost`
 
-| 定数 | 値 | 意味 |
+**特殊コスト定数**: `terrains.json > movementCost.specialCosts` を参照。
+
+| 定数 | JSONキー | 意味 |
 |------|-----|------|
-| `COST_ALL` | -1 | 全消費: 残移動力をすべて消費して進入可能 |
-| `COST_BLOCKED` | -2 | 進入不可 |
+| `COST_ALL` | `specialCosts.COST_ALL` | 全消費: 残移動力をすべて消費して進入可能 |
+| `COST_BLOCKED` | `specialCosts.COST_BLOCKED` | 進入不可 |
 
-**移動コストテーブル**:
-
-| ID | 地形名 | 一般(general) | 水陸両用(amphibious) | 艦船(ship) |
-|----|--------|:---:|:---:|:---:|
-| 1 | 宇宙 | 1 | 1 | 1 |
-| 2 | 平野 | 1 | 1 | 1 |
-| 3 | 森林 | 2 | 2 | 1 |
-| 4 | アステロイド | 3 | 3 | 1 |
-| 5 | 水中 | 3 | 1 | 1 |
-| 6 | 砂漠 | 3 | 3 | 1 |
-| 7 | 大気圏 | 全消費(-1) | 全消費(-1) | 全消費(-1) |
-| 8 | 火山 | 進入不可(-2) | 進入不可(-2) | 進入不可(-2) |
-| 9 | 小惑星 | 1 | 1 | 1 |
-| 10 | クレータ | 1 | 1 | 1 |
-| 11 | ブラックホール | 進入不可(-2) | 進入不可(-2) | 進入不可(-2) |
-| 12 | 大クレータ | 1 | 1 | 1 |
-| 13 | GP | 1 | 1 | 1 |
-| 14 | GB | 1 | 1 | 1 |
-| 15 | 都市 | 1 | 1 | 1 |
-| 16 | コロニー | 1 | 1 | 1 |
-| 17 | 補給基地 | 1 | 1 | 1 |
-| 18 | スペースベース | 1 | 1 | 1 |
-
-**データ構造**:
-
-```javascript
-const MOVEMENT_COST_TABLE = {
-  // terrainId: { general: cost, amphibious: cost, ship: cost }
-  1:  { general: 1,  amphibious: 1,  ship: 1 },
-  2:  { general: 1,  amphibious: 1,  ship: 1 },
-  3:  { general: 2,  amphibious: 2,  ship: 1 },
-  4:  { general: 3,  amphibious: 3,  ship: 1 },
-  5:  { general: 3,  amphibious: 1,  ship: 1 },
-  6:  { general: 3,  amphibious: 3,  ship: 1 },
-  7:  { general: -1, amphibious: -1, ship: -1 },   // 全消費
-  8:  { general: -2, amphibious: -2, ship: -2 },   // 進入不可
-  9:  { general: 1,  amphibious: 1,  ship: 1 },
-  10: { general: 1,  amphibious: 1,  ship: 1 },
-  11: { general: -2, amphibious: -2, ship: -2 },   // 進入不可
-  12: { general: 1,  amphibious: 1,  ship: 1 },
-  13: { general: 1,  amphibious: 1,  ship: 1 },
-  14: { general: 1,  amphibious: 1,  ship: 1 },
-  15: { general: 1,  amphibious: 1,  ship: 1 },
-  16: { general: 1,  amphibious: 1,  ship: 1 },
-  17: { general: 1,  amphibious: 1,  ship: 1 },
-  18: { general: 1,  amphibious: 1,  ship: 1 },
-};
-```
+**移動コストテーブル**: `terrains.json > movementCost.table` を参照。地形IDをキー、ユニットタイプ（general/amphibious/ship）をサブキーとするコスト値の辞書。
 
 #### 3.3.4 操作モード状態
 
@@ -456,8 +408,8 @@ window.gameState = {
   movementRange: Object,    // 移動可能タイル辞書 {"col,row": remainingMV}
   currentPlayer: number,    // 現在の操作プレイヤー
   MOVEMENT_COST_TABLE: Object,  // 移動コストテーブル
-  COST_ALL: number,         // 全消費定数（-1）
-  COST_BLOCKED: number,     // 進入不可定数（-2）
+  COST_ALL: number,         // 全消費定数
+  COST_BLOCKED: number,     // 進入不可定数
   isAnimating: boolean,     // 移動アニメーション中かどうか
   animatingUnitId: number,  // アニメーション中のユニットID
   animationPath: Array,     // アニメーション経路 [{col, row}, ...]
@@ -492,9 +444,9 @@ window.gameState = {
 - **搭載システムは範囲外**: 艦船へのユニット搭載・発進は2-2で実装する。本仕様では艦船も通常ユニットと同じ移動処理のみ
 - **ターン進行UIは範囲外**: ターン開始/終了ボタンやターン切替処理は7-1で実装する。本仕様ではテスト用の `resetTurn()` 関数で代替する
 - **操作プレイヤーは固定**: 本仕様では `currentPlayer = 1` 固定で実装する。プレイヤー切替は7-1で対応する
-- **ユニットデータはハードコード**: サンプルユニットデータをJavaScript内に定義する。GASからの動的読み込みは将来対応
+- **ユニットデータは設定JSON**: `src/config/map_sample.json` にサンプルユニットを定義する。GASからの動的読み込みは将来対応
 - **スプライト未収集ユニット**: スプライト画像がないユニットはフォールバック表示（色付き円＋頭文字）で代替する
-- **移動アニメーション**: 1タイルあたり100msのマス単位離散移動アニメーションで移動を表示する。データ（col, row）は即時更新し、描画のみアニメーション。タイル間の補間は行わず、1マスずつジャンプする
+- **移動アニメーション**: `map_settings.json > animation.moveSpeed` のマス単位離散移動アニメーションで移動を表示する。データ（col, row）は即時更新し、描画のみアニメーション。タイル間の補間は行わず、1マスずつジャンプする
 - **1タイル1ユニット**: 同一タイルに複数のユニットは配置できない（艦船搭載は2-2で扱う）
 
 ## 6. テスト方針
@@ -516,7 +468,7 @@ window.gameState = {
 
 ### テストデータ
 
-- 3.3.2節のサンプルユニットデータを使用
+- `src/config/map_sample.json` のサンプルユニットデータを使用
 - 25x25マップ（1-1と同じサンプルマップ）上に配置
 - 地形バリエーション（宇宙、平野、森林、水中、大気圏、火山、ブラックホール等）が移動範囲に影響する配置
 
@@ -529,14 +481,14 @@ window.gameState = {
 - ユニットスプライトがタイルの中央に描画される
 - ユニットスプライトがズーム倍率に応じてスケーリングされる
 - スプライト画像がないユニットがフォールバック表示（色付き円＋頭文字）で表示される
-- 移動済みユニットが半透明（不透明度0.4）で表示される
-- ミニマップ上にP1ユニットが青ドットで表示される
-- ミニマップ上にP2ユニットがピンクドットで表示される
+- 移動済みユニットが半透明（`map_settings.json > unitSprite.movedOpacity`）で表示される
+- ミニマップ上にP1ユニットが `ui_theme.json > colors.player1.primary` のドットで表示される
+- ミニマップ上にP2ユニットが `ui_theme.json > colors.player2.primary` のドットで表示される
 
 ### ユニット選択
 
 - 自軍ユニットをクリックすると選択状態になる（selectedUnitIdが更新される）
-- 選択中ユニットに白い点滅枠が表示される
+- 選択中ユニットに点滅枠が表示される
 - 選択中ユニットをもう一度クリックすると選択が解除される
 - 別の自軍ユニットをクリックすると選択が切り替わる
 - 敵軍ユニットをクリックしても選択されない
@@ -547,43 +499,43 @@ window.gameState = {
 
 ### 移動範囲表示
 
-- ユニット選択時に移動可能タイルが青色でハイライトされる
-- 敵ユニットがいる到達可能タイルが赤色でハイライトされる
+- ユニット選択時に移動可能タイルが `ui_theme.json > colors.highlight.moveRange` でハイライトされる
+- 敵ユニットがいる到達可能タイルが `ui_theme.json > colors.highlight.attackRange` でハイライトされる
 - 進入不可地形（火山・ブラックホール）がハイライトされない
 - 自軍ユニットが占有するタイルがハイライトされない
 - 選択解除時にハイライトが消える
 
 ### 移動コスト計算（一般ユニット）
 
-- 宇宙タイルの移動コストが1である
-- 平野タイルの移動コストが1である
-- 森林タイルの移動コストが2である
-- アステロイドタイルの移動コストが3である
-- 水中タイルの移動コストが3である
-- 砂漠タイルの移動コストが3である
+- 宇宙タイルの移動コストが `terrains.json > movementCost.table` の定義通りである
+- 平野タイルの移動コストが定義通りである
+- 森林タイルの移動コストが定義通りである
+- アステロイドタイルの移動コストが定義通りである
+- 水中タイルの移動コストが定義通りである
+- 砂漠タイルの移動コストが定義通りである
 - 大気圏タイルが全消費（残移動力をすべて消費）で進入可能である
 - 火山タイルが進入不可である
 - ブラックホールタイルが進入不可である
 
 ### 移動コスト計算（水陸両用ユニット）
 
-- 水中タイルの移動コストが1である（一般の3に対して優遇）
-- 森林タイルの移動コストが2である（一般と同じ）
-- アステロイドタイルの移動コストが3である（一般と同じ）
+- 水中タイルの移動コストが一般と異なり `terrains.json > movementCost.table` の定義通りである
+- 森林タイルの移動コストが定義通りである
+- アステロイドタイルの移動コストが定義通りである
 
 ### 移動コスト計算（艦船ユニット）
 
-- 森林タイルの移動コストが1である（一般の2に対して優遇）
-- アステロイドタイルの移動コストが1である（一般の3に対して優遇）
-- 水中タイルの移動コストが1である（一般の3に対して優遇）
-- 砂漠タイルの移動コストが1である（一般の3に対して優遇）
+- 森林タイルの移動コストが一般と異なり `terrains.json > movementCost.table` の定義通りである
+- アステロイドタイルの移動コストが定義通りである
+- 水中タイルの移動コストが定義通りである
+- 砂漠タイルの移動コストが定義通りである
 
 ### 移動範囲計算の正確性
 
 - MV=4の一般ユニットが平野のみのエリアで4タイル先まで到達可能である
-- MV=4の一般ユニットが森林（コスト2）を含むエリアで正しい範囲が計算される
-- MV=4の水陸両用ユニットが水中（コスト1）エリアで4タイル先まで到達可能である
-- MV=4の一般ユニットが水中（コスト3）エリアで1タイル先しか到達できない
+- MV=4の一般ユニットが森林を含むエリアで正しい範囲が計算される
+- MV=4の水陸両用ユニットが水中エリアで有利に移動できる
+- MV=4の一般ユニットが水中エリアで不利に移動する
 - 大気圏に隣接するユニットが、大気圏タイルに到達可能（残移動力0）である
 - 大気圏タイルから先のタイルには到達できない
 - 自軍ユニットを通過して先のタイルに到達可能である
@@ -600,9 +552,9 @@ window.gameState = {
 
 ### 敵ユニットへの移動
 
-- 敵ユニットのいるタイルが移動範囲内にある場合、赤色でハイライトされる
-- 赤色ハイライトのタイルをクリックするとユニットが移動する
-- 移動時にコンソールに戦闘ログが出力される（スタブ動作）
+- 敵ユニットのいるタイルが移動範囲内にある場合ハイライトされる
+- 敵ユニットのいるタイルをクリックするとユニットが移動する
+- 敵ユニットへの移動時にコンソールに戦闘ログが出力される（スタブ動作）
 
 ### ホバー情報
 
