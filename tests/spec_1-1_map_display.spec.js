@@ -724,6 +724,63 @@ test.describe('ステータスバー', () => {
 // -------------------------------------------------------
 // 画像フォールバック
 // -------------------------------------------------------
+// -------------------------------------------------------
+// ステータスバー（レスポンシブ）
+// -------------------------------------------------------
+test.describe('ステータスバー（レスポンシブ）', () => {
+  // スマホ実機のビューポートを想定（高さ700px以下でレスポンシブ発動）
+  test.use({ viewport: { width: 375, height: 600 } });
+
+  test.beforeEach(async ({ page }) => {
+    await page.goto(PAGE_URL);
+    await page.waitForFunction(() => window.gameState !== undefined);
+  });
+
+  test('画面高さ700px以下でステータスバーの高さが120pxに縮小される', async ({ page }) => {
+    const statusBar = page.getByTestId('status-bar');
+    const box = await statusBar.boundingBox();
+    // 仕様: 画面高さ700px以下ではステータスバー高さ120px
+    expect(box.height).toBe(120);
+  });
+
+  test('画面高さ700px以下でステータスバーの全要素がビューポート内に収まる', async ({ page }) => {
+    const statusBar = page.getByTestId('status-bar');
+    const box = await statusBar.boundingBox();
+    expect(box.y + box.height).toBeLessThanOrEqual(600);
+  });
+
+  test('画面高さ700px以下でP1のユニット総数が画面内に表示される', async ({ page }) => {
+    const el = page.getByTestId('p1-unit-count');
+    const box = await el.boundingBox();
+    expect(box.y + box.height).toBeLessThanOrEqual(600);
+  });
+
+  test('画面高さ700px以下でP2のユニット総数が画面内に表示される', async ({ page }) => {
+    const el = page.getByTestId('p2-unit-count');
+    const box = await el.boundingBox();
+    expect(box.y + box.height).toBeLessThanOrEqual(600);
+  });
+
+  test('画面高さ700px以下でミニマップが画面内に表示される', async ({ page }) => {
+    const el = page.getByTestId('mini-map-canvas');
+    const box = await el.boundingBox();
+    expect(box.y + box.height).toBeLessThanOrEqual(600);
+  });
+});
+
+test.describe('ステータスバー（PC表示維持）', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto(PAGE_URL);
+    await page.waitForFunction(() => window.gameState !== undefined);
+  });
+
+  test('画面高さ800pxではステータスバーの高さが180pxである', async ({ page }) => {
+    const statusBar = page.getByTestId('status-bar');
+    const box = await statusBar.boundingBox();
+    expect(box.height).toBe(180);
+  });
+});
+
 test.describe('画像フォールバック', () => {
   test('画像読み込み失敗時もCanvasが描画される', async ({ page }) => {
     // 画像パスが不正でもフォールバックカラーで描画されることを確認

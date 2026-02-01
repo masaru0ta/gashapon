@@ -143,6 +143,40 @@
     image-rendering: pixelated;
     cursor: pointer;
   }
+
+  /* --- レスポンシブ: 小さい画面でステータスバーを縮小 --- */
+  @media (max-height: 700px) {
+    .status-bar {
+      height: 120px;
+    }
+    .player-info {
+      padding: 4px 8px;
+      gap: 1px;
+    }
+    .resource-line {
+      font-size: 14px;
+    }
+    .stat-line {
+      font-size: 12px;
+    }
+    .unit-count {
+      font-size: 28px;
+    }
+    .center-panel {
+      width: 200px;
+      gap: 2px;
+    }
+    .turn-number {
+      font-size: 20px;
+    }
+    .turn-phase {
+      font-size: 16px;
+    }
+    #miniMapCanvas {
+      width: 150px;
+      height: 80px;
+    }
+  }
 </style>
 </head>
 <body>
@@ -301,7 +335,7 @@ let isAnimating = false;
 let animatingUnitId = -1;
 let animationPath = [];
 let animationStep = 0;
-let animationSpeed = 100;
+let animationSpeed = 50;
 let animationTimerId = null;
 let animationResolve = null;
 
