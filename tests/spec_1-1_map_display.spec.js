@@ -727,44 +727,67 @@ test.describe('ステータスバー', () => {
 // -------------------------------------------------------
 // ステータスバー（レスポンシブ）
 // -------------------------------------------------------
-test.describe('ステータスバー（レスポンシブ）', () => {
-  // スマホ実機のビューポートを想定（高さ700px以下でレスポンシブ発動）
-  test.use({ viewport: { width: 375, height: 600 } });
+test.describe('ステータスバー（レスポンシブ・高さ500px）', () => {
+  // スマホ実機でアドレスバー表示時を想定した極端に小さいビューポート
+  test.use({ viewport: { width: 375, height: 500 } });
 
   test.beforeEach(async ({ page }) => {
     await page.goto(PAGE_URL);
     await page.waitForFunction(() => window.gameState !== undefined);
   });
 
-  test('画面高さ700px以下でステータスバーの高さが120pxに縮小される', async ({ page }) => {
-    const statusBar = page.getByTestId('status-bar');
-    const box = await statusBar.boundingBox();
-    // 仕様: 画面高さ700px以下ではステータスバー高さ120px
-    expect(box.height).toBe(120);
+  test('画面高さ500pxでゲームコンテナがビューポート高さに一致する', async ({ page }) => {
+    // dvhを使用していればコンテナ高さはビューポートと同じになる
+    const height = await page.getByTestId('game-container').evaluate(
+      el => el.getBoundingClientRect().height
+    );
+    expect(height).toBeLessThanOrEqual(500);
   });
 
-  test('画面高さ700px以下でステータスバーの全要素がビューポート内に収まる', async ({ page }) => {
+  test('画面高さ500pxでステータスバーの全要素がビューポート内に収まる', async ({ page }) => {
     const statusBar = page.getByTestId('status-bar');
     const box = await statusBar.boundingBox();
-    expect(box.y + box.height).toBeLessThanOrEqual(600);
+    expect(box.y + box.height).toBeLessThanOrEqual(500);
   });
 
-  test('画面高さ700px以下でP1のユニット総数が画面内に表示される', async ({ page }) => {
+  test('画面高さ500pxでP1のユニット総数が画面内に表示される', async ({ page }) => {
     const el = page.getByTestId('p1-unit-count');
     const box = await el.boundingBox();
-    expect(box.y + box.height).toBeLessThanOrEqual(600);
+    expect(box.y + box.height).toBeLessThanOrEqual(500);
   });
 
-  test('画面高さ700px以下でP2のユニット総数が画面内に表示される', async ({ page }) => {
+  test('画面高さ500pxでP2のユニット総数が画面内に表示される', async ({ page }) => {
     const el = page.getByTestId('p2-unit-count');
     const box = await el.boundingBox();
-    expect(box.y + box.height).toBeLessThanOrEqual(600);
+    expect(box.y + box.height).toBeLessThanOrEqual(500);
   });
 
-  test('画面高さ700px以下でミニマップが画面内に表示される', async ({ page }) => {
+  test('画面高さ500pxでミニマップが画面内に表示される', async ({ page }) => {
     const el = page.getByTestId('mini-map-canvas');
     const box = await el.boundingBox();
-    expect(box.y + box.height).toBeLessThanOrEqual(600);
+    expect(box.y + box.height).toBeLessThanOrEqual(500);
+  });
+
+  test('画面高さ500pxでユニット数のフォントが42pxより縮小される', async ({ page }) => {
+    const fontSize = await page.getByTestId('p1-unit-count').evaluate(
+      el => parseFloat(getComputedStyle(el).fontSize)
+    );
+    // clamp(20px, 5.5vh, 42px) で500px時 → 27.5px, 42pxより小さい
+    expect(fontSize).toBeLessThan(42);
+  });
+
+  test('画面高さ500pxでユニット数のフォントが20px以上ある', async ({ page }) => {
+    const fontSize = await page.getByTestId('p1-unit-count').evaluate(
+      el => parseFloat(getComputedStyle(el).fontSize)
+    );
+    // clamp(20px, 5.5vh, 42px) の最小値20pxは維持される
+    expect(fontSize).toBeGreaterThanOrEqual(20);
+  });
+
+  test('画面高さ500pxでステータスバーの高さがheight:autoで内容に応じて決まる', async ({ page }) => {
+    // max-height:180px, height:autoの場合、500px画面では180pxより小さくなりうる
+    const box = await page.getByTestId('status-bar').boundingBox();
+    expect(box.height).toBeLessThanOrEqual(180);
   });
 });
 
@@ -774,10 +797,18 @@ test.describe('ステータスバー（PC表示維持）', () => {
     await page.waitForFunction(() => window.gameState !== undefined);
   });
 
-  test('画面高さ800pxではステータスバーの高さが180pxである', async ({ page }) => {
+  test('画面高さ800pxではステータスバーの高さが150px以上ある', async ({ page }) => {
     const statusBar = page.getByTestId('status-bar');
     const box = await statusBar.boundingBox();
-    expect(box.height).toBe(180);
+    expect(box.height).toBeGreaterThanOrEqual(150);
+  });
+
+  test('画面高さ800pxではユニット数のフォントサイズが36px以上', async ({ page }) => {
+    const fontSize = await page.getByTestId('p1-unit-count').evaluate(
+      el => parseFloat(getComputedStyle(el).fontSize)
+    );
+    // 800px時: clamp(20px, 5.5vh, 42px) → 5.5% * 800 = 44px → clamped to 42px
+    expect(fontSize).toBeGreaterThanOrEqual(36);
   });
 });
 

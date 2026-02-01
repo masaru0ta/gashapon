@@ -17,6 +17,7 @@
     flex-direction: column;
     align-items: center;
     height: 100vh;
+    height: 100dvh;
     overflow: hidden;
   }
 
@@ -26,11 +27,13 @@
     width: 100%;
     max-width: 1200px;
     height: 100vh;
+    height: 100dvh;
   }
 
   /* --- マップエリア --- */
   .map-area {
     flex: 1;
+    min-height: 0;
     background: #000;
     position: relative;
     overflow: hidden;
@@ -63,35 +66,36 @@
 
   /* --- 下部ステータスバー --- */
   .status-bar {
-    height: 180px;
+    max-height: 180px;
     background: #1a1a2e;
     display: flex;
     align-items: stretch;
     border-top: 2px solid #555;
-    flex-shrink: 0;
+    flex-shrink: 1;
     overflow: hidden;
+    padding: clamp(2px, 0.5vh, 4px) 0;
   }
 
   .player-info {
     flex: 1;
-    padding: 8px 16px;
+    padding: clamp(2px, 1vh, 8px) clamp(4px, 1vw, 16px);
     display: flex;
     flex-direction: column;
     justify-content: center;
-    gap: 2px;
+    gap: clamp(0px, 0.3vh, 2px);
     min-width: 0;
   }
   .player-info.left { text-align: left; }
   .player-info.right { text-align: right; }
 
   .resource-line {
-    font-size: 18px;
+    font-size: clamp(12px, 2.3vh, 18px);
     line-height: 1.2;
     white-space: nowrap;
     color: #44cc44;
   }
   .stat-line {
-    font-size: 16px;
+    font-size: clamp(10px, 2vh, 16px);
     line-height: 1.2;
     display: flex;
     gap: 8px;
@@ -103,7 +107,7 @@
   .stat-item .icon-t { color: #44cc44; }
 
   .unit-count {
-    font-size: 42px;
+    font-size: clamp(20px, 5.5vh, 42px);
     font-weight: bold;
     line-height: 1;
   }
@@ -112,13 +116,13 @@
 
   /* 中央: ミニマップ + ターン */
   .center-panel {
-    width: 280px;
+    width: clamp(160px, 25vw, 280px);
     flex-shrink: 0;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 4px;
+    gap: clamp(1px, 0.5vh, 4px);
   }
   .turn-display {
     display: flex;
@@ -126,7 +130,7 @@
     gap: 12px;
   }
   .turn-number {
-    font-size: 28px;
+    font-size: clamp(16px, 3.5vh, 28px);
     font-weight: bold;
     color: #44cc44;
     background: #224422;
@@ -134,7 +138,7 @@
     border-radius: 2px;
   }
   .turn-phase {
-    font-size: 24px;
+    font-size: clamp(14px, 3vh, 24px);
     color: #cc8844;
   }
   #miniMapCanvas {
@@ -142,40 +146,8 @@
     background: #222;
     image-rendering: pixelated;
     cursor: pointer;
-  }
-
-  /* --- レスポンシブ: 小さい画面でステータスバーを縮小 --- */
-  @media (max-height: 700px) {
-    .status-bar {
-      height: 120px;
-    }
-    .player-info {
-      padding: 4px 8px;
-      gap: 1px;
-    }
-    .resource-line {
-      font-size: 14px;
-    }
-    .stat-line {
-      font-size: 12px;
-    }
-    .unit-count {
-      font-size: 28px;
-    }
-    .center-panel {
-      width: 200px;
-      gap: 2px;
-    }
-    .turn-number {
-      font-size: 20px;
-    }
-    .turn-phase {
-      font-size: 16px;
-    }
-    #miniMapCanvas {
-      width: 150px;
-      height: 80px;
-    }
+    max-width: 100%;
+    max-height: clamp(60px, 15vh, 120px);
   }
 </style>
 </head>
